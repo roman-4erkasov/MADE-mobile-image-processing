@@ -1,70 +1,59 @@
 package com.asav.android;
 
 
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentActivity;
+import androidx.exifinterface.media.ExifInterface;
 
-import android.view.View;
+import android.text.method.ScrollingMovementMethod;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.util.Log;
-import android.widget.ImageButton;
-import android.widget.ProgressBar;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.asav.android.db.EXIFData;
-import com.asav.android.db.ImageAnalysisResults;
-import com.asav.android.db.TopCategoriesData;
-import com.asav.android.db.RectFloat;
+import com.asav.android.db.SceneData;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
  * Created by avsavchenko.
  */
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
 
     /** Tag for the {@link Log}. */
     private static final String TAG = "MainActivity";
     private final int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS = 124;
 
-    private HighLevelVisualPreferences preferencesFragment;
-    private Photos photosFragment;
-
-    private ProgressBar progressBar;
-    private TextView progressBarinsideText;
-
-    private Thread photoProcessingThread=null;
-    private Map<String,Long> photosTaken;
-    private ArrayList<String> photosFilenames;
-    private int currentPhotoIndex=0;
-    private PhotoProcessor photoProcessor = null;
-
-    private Map<String,HashSet<String>> file2categories=new LinkedHashMap<>();
-    private Map<String,String> file2locations=new LinkedHashMap<>();
-
-    private String[] categoryList;
-
-    private List<Map<String,Map<String, Set<String>>>> categoriesHistograms=new ArrayList<>();
-    private List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files=new ArrayList<>();
-    private List<List<Map<String,Set<String>>>> demographyHisto=new ArrayList<>();
+    private ScenesTfLiteClassifier scenesClassifier;
+    private ImageView imageView;
+    private TextView recResultTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(toolbar);
+        imageView=(ImageView)findViewById(R.id.photoView);
+        recResultTextView=(TextView)findViewById(R.id.recResultTextView);
+        recResultTextView.setMovementMethod(new ScrollingMovementMethod());
 
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, getRequiredPermissions(), REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
@@ -72,157 +61,104 @@ public class MainActivity extends FragmentActivity {
         else
             init();
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
+
     private void init(){
-        //checkServerSettings();
-        categoryList = getResources().getStringArray(R.array.category_list);
-
-        for(int i=0;i<categoryList.length-1;++i){
-            categoriesHistograms.add(new HashMap<>());
+        try {
+            scenesClassifier = new ScenesTfLiteClassifier(getAssets());
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to load ScenesTfClassifier.", e);
         }
-
-        for(int i=0;i<categoryList.length-2;++i){
-            eventTimePeriod2Files.add(new HashMap<>());
-        }
-
-        photoProcessor = PhotoProcessor.getPhotoProcessor(this);
-        photosTaken = photoProcessor.getCameraImages();
-        photosFilenames=new ArrayList<String>(photosTaken.keySet());
-        //currentPhotoIndex=0;
-
-        progressBar=(ProgressBar) findViewById(R.id.progress);
-        progressBar.setMax(photosFilenames.size());
-        progressBarinsideText=(TextView)findViewById(R.id.progressBarinsideText);
-        progressBarinsideText.setText("");
-
-
-        photoProcessingThread = new Thread(() -> {
-         processAllPhotos();
-        }, "photo-processing-thread");
-        progressBar.setVisibility(View.VISIBLE);
-
-        preferencesFragment = new HighLevelVisualPreferences();
-        Bundle prefArgs = new Bundle();
-        prefArgs.putInt("color", Color.GREEN);
-        prefArgs.putString("title", "High-Level topCategories");
-        preferencesFragment.setArguments(prefArgs);
-
-        photosFragment=new Photos();
-        Bundle args = new Bundle();
-        args.putStringArray("photosTaken", new String[]{"0"});
-        args.putStringArrayList("0",new ArrayList<String>(photoProcessor.getCameraImages().keySet()));
-        photosFragment.setArguments(args);
-        PreferencesClick(null);
-
-        photoProcessingThread.setPriority(Thread.MIN_PRIORITY);
-        photoProcessingThread.start();
     }
-    public synchronized List<Map<String,Map<String, Set<String>>>> getCategoriesHistograms(boolean allLogs){
-        if (allLogs)
-            return categoriesHistograms;
-        else
-            return eventTimePeriod2Files;
+    private static final int SELECT_PICTURE = 1;
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_openGallery:
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent,"Select Picture"),
+                        SELECT_PICTURE);
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == SELECT_PICTURE && resultCode == RESULT_OK) {
+            Uri selectedImageUri = data.getData(); //The uri with the location of the file
+            Log.d(TAG,"uri"+selectedImageUri);
+            //imageView.setImageURI(selectedImageUri);
+            /*String path=getPath1(selectedImageUri);
+            Log.d(TAG,"path "+path);*/
+
+            processImage(selectedImageUri);
+        }
+    }
+    private String classifyScenes(Bitmap bmp) {
+        long startTime = SystemClock.uptimeMillis();
+        Bitmap scenesBitmap = Bitmap.createScaledBitmap(bmp, scenesClassifier.getImageSizeX(), scenesClassifier.getImageSizeY(), false);
+        SceneData scene = (SceneData) scenesClassifier.classifyFrame(scenesBitmap);
+        long sceneTimeCost = SystemClock.uptimeMillis() - startTime;
+        Log.i(TAG, "Timecost to run scene model inference: " + Long.toString(sceneTimeCost));
+        StringBuilder text=new StringBuilder();
+        text.append(scene).append("\n").append("Scenes classification time:").append(sceneTimeCost).append(" ms\n");
+        return text.toString();
     }
 
-    private void processAllPhotos(){
-        //ImageAnalysisResults previousPhotoProcessedResult=null;
-        for(;currentPhotoIndex<photosTaken.size();++currentPhotoIndex){
-            String filename=photosFilenames.get(currentPhotoIndex);
-            try {
-                File file = new File(filename);
+    private void processImage(Uri selectedImageUri)
+    {
+        try {
+            InputStream ims = getContentResolver().openInputStream(selectedImageUri);
+            Bitmap bmp= BitmapFactory.decodeStream(ims);
+            ims.close();
+            ims = getContentResolver().openInputStream(selectedImageUri);
+            ExifInterface exif = new ExifInterface(ims);//selectedImageUri.getPath());
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,1);
+            int degreesForRotation=0;
+            switch (orientation)
+            {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    degreesForRotation=90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    degreesForRotation=270;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    degreesForRotation=180;
+                    break;
+            }
+            if(degreesForRotation!=0) {
+                Matrix matrix = new Matrix();
+                matrix.setRotate(degreesForRotation);
+                bmp=Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(),
+                        bmp.getHeight(), matrix, true);
+            }
 
-                if (file.exists()) {
-                    long startTime = SystemClock.uptimeMillis();
-                    ImageAnalysisResults res = photoProcessor.getImageAnalysisResults(filename);
+            String result=classifyScenes(bmp);
+            recResultTextView.setText(result);
+            imageView.setImageBitmap(bmp);
 
-                    long endTime = SystemClock.uptimeMillis();
-                    Log.d(TAG, "!!Processed: "+ filename+" in background thread:" + Long.toString(endTime - startTime));
-                    processRecognitionResults(res);
-
-                    runOnUiThread(() -> {
-                        if(progressBar!=null) {
-                            progressBar.setProgress(currentPhotoIndex+1);
-                            progressBarinsideText.setText(""+100*(currentPhotoIndex+1)/photosTaken.size()+"%");
-                        }
-                    });
+            /*runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e(TAG, "While  processing image" + filename + " exception thrown: " + e);
-            }
+            });*/
+        } catch (Exception e) {
+            Log.e(TAG, "Exception thrown: " + e+" "+Log.getStackTraceString(e));
         }
     }
 
-
-
-    private void updateCategory(List<Map<String,Map<String, Set<String>>>> histos, int highLevelCategory, String category, String filename){
-        if(highLevelCategory>=0) {
-            Map<String, Map<String, Set<String>>> histo = histos.get(highLevelCategory);
-            if (!histo.containsKey(category)) {
-                histo.put(category, new TreeMap<>());
-                histo.get(category).put("0", new TreeSet<>());
-            }
-            histo.get(category).get("0").add(filename);
-        }
-    }
-
-    private List<Map<String,Map<String, Set<String>>>> deepCopyCategories(List<Map<String,Map<String, Set<String>>>> categories){
-        ArrayList<Map<String,Map<String, Set<String>>>> result=new ArrayList<>(categories.size());
-        for(Map<String,Map<String, Set<String>>> m:categories){
-            Map<String,Map<String, Set<String>>> m1=new HashMap<>(m.size());
-            result.add(m1);
-            for(Map.Entry<String,Map<String, Set<String>>> me:m.entrySet()){
-                Map<String, Set<String>> m2=new TreeMap<>(Collections.reverseOrder());
-                m1.put(me.getKey(),m2);
-                for(Map.Entry<String, Set<String>> map_files:me.getValue().entrySet()){
-                    m2.put(map_files.getKey(),new TreeSet<>(map_files.getValue()));
-                }
-            }
-        }
-        return result;
-    }
-    private synchronized void processRecognitionResults(ImageAnalysisResults results){
-        String filename=results.filename;
-
-        List<Map<String,Map<String, Set<String>>>> newEventTimePeriod2Files = deepCopyCategories(eventTimePeriod2Files);
-        photoProcessor.updateSceneInEvents(newEventTimePeriod2Files,filename);
-        eventTimePeriod2Files=newEventTimePeriod2Files;
-        //eventTimePeriod2Files=photoProcessor.updateSceneInEvents(categoryList.length-2);
-
-        String location=results.locations.description;
-        List<Map<String,Map<String, Set<String>>>> newCategoriesHistograms = deepCopyCategories(categoriesHistograms);
-
-        List<String> scenes = results.scene.getMostReliableCategories();
-        for (String scene : scenes) {
-            updateCategory(newCategoriesHistograms, photoProcessor.getHighLevelCategory(scene), scene, filename);
-        }
-        if(location!=null)
-            updateCategory(newCategoriesHistograms, newCategoriesHistograms.size() - 1, location, filename);
-
-        categoriesHistograms=newCategoriesHistograms;
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                preferencesFragment.updateChart();
-            }
-        });
-    }
-
-    public void PreferencesClick(View view) {
-        FragmentManager fm = getFragmentManager();
-        FragmentTransaction fragmentTransaction = fm.beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_switch, preferencesFragment);
-        fragmentTransaction.commit();
-    }
-    public void PhotosClick(View view) {
-        FragmentManager fm = getFragmentManager();
-        if(fm.getBackStackEntryCount()==0) {
-            FragmentTransaction fragmentTransaction = fm.beginTransaction();
-            fragmentTransaction.replace(R.id.fragment_switch, photosFragment);
-            fragmentTransaction.addToBackStack(null);
-            fragmentTransaction.commit();
-        }
-    }
 
     private String[] getRequiredPermissions() {
         try {

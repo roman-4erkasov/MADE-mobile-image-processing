@@ -3,50 +3,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent" android:layout_height="match_parent" android:keepScreenOn="true">
-
-    <FrameLayout
-        android:id="@+id/fragment_switch"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/my_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginBottom="5dp"
-        android:layout_weight="0.9" />
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
-    <LinearLayout
+    <ImageView
+        android:id="@+id/photoView"
         android:layout_width="match_parent"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <RelativeLayout
-            android:layout_width="fill_parent"
-            android:layout_weight = "1"
-            android:layout_height="wrap_content">
-
-        <ProgressBar
-            android:id="@+id/progress"
-            style="@android:style/Widget.ProgressBar.Horizontal"
-            android:layout_width="fill_parent"
-            android:layout_weight = "1"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="20dp"
-            android:layout_marginEnd="2dp"
-            android:indeterminate="false"
-            android:onClick="PhotosClick"
-            android:progress="0" />
-
-        <TextView
-            android:id="@+id/progressBarinsideText"
-            android:layout_width="fill_parent"
-            android:layout_weight = "1"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="18dp"
-            android:gravity="center"
-            android:textColor="#ffffff" />
-        </RelativeLayout>
-    </LinearLayout>
+        app:srcCompat="@android:color/background_light" />
+    <TextView
+        android:id="@+id/recResultTextView"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:scrollbars="vertical" />
 </LinearLayout>

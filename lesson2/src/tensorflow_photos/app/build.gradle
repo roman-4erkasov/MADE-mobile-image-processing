@@ -23,6 +23,7 @@ android {
     }
     aaptOptions {
         noCompress "tflite"
+        ignoreAssetsPattern "!places_event_mobilenet2_alpha=1.0_augm_ft_sgd_model.pb"
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -47,10 +48,6 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.0.2'
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
-    implementation 'com.google.android.material:material:1.0.0'
-    implementation 'com.takisoft.fix:preference-v7:26.1.0.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'androidx.annotation:annotation:1.1.0'
 
     //implementation 'org.tensorflow:tensorflow-lite:+'

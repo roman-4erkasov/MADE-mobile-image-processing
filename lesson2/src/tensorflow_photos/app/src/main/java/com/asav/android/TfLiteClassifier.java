@@ -43,7 +43,6 @@ public abstract class TfLiteClassifier {
     Map<Integer, Object> outputMap = new HashMap<>();
 
     public TfLiteClassifier(final AssetManager assetManager,String model_path) throws IOException {
-        //GpuDelegate delegate = new GpuDelegate();
         Interpreter.Options options = (new Interpreter.Options()).setNumThreads(4);//.addDelegate(delegate);
         if(false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             NnApiDelegate.Options opt = new NnApiDelegate.Options();
@@ -51,7 +50,7 @@ public abstract class TfLiteClassifier {
             nnApiDelegate = new NnApiDelegate(opt);
             options.addDelegate(nnApiDelegate);
         }
-        if (true) {
+        if (false) {
             GpuDelegate.Options opt=new GpuDelegate.Options();
             opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED);
             //opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER);
