@@ -7,8 +7,6 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 
-import com.asav.android.db.ClassifierResult;
-
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.nnapi.NnApiDelegate;
@@ -50,7 +48,7 @@ public abstract class TfLiteClassifier {
             nnApiDelegate = new NnApiDelegate(opt);
             options.addDelegate(nnApiDelegate);
         }
-        if (false) {
+        if (true) {
             GpuDelegate.Options opt=new GpuDelegate.Options();
             opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED);
             //opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER);

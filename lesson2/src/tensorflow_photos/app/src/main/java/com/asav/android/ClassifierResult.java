@@ -1,4 +1,4 @@
-package com.asav.android.db;
+package com.asav.android;
 
 /**
  * Created by avsavchenko.

@@ -3,8 +3,8 @@ package com.asav.android;
 import android.content.res.AssetManager;
 import android.util.Log;
 
-import com.asav.android.db.ClassifierResult;
-import com.asav.android.db.SceneData;
+import com.asav.android.ClassifierResult;
+import com.asav.android.SceneData;
 
 import java.io.BufferedReader;
 import java.io.IOException;
