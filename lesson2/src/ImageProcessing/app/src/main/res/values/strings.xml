@@ -2,7 +2,6 @@
     <string name="app_name">ImageProcessing</string>
     <string name="action_OpenGallery">Open Image File</string>
     <string name="action_GrayScale">To grayscale</string>
-    <string name="action_PerspectiveTransform">Perspective Transform</string>
     <string name="action_Binary">To binary</string>
     <string name="action_EqualizeHisto">Equalize Histogram</string>
     <string name="action_Gamma">Gamma correction</string>

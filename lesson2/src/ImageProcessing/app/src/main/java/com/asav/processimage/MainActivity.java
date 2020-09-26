@@ -50,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
     private final int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS = 124;
     private ImageView imageView;
     private Mat sampledImage=null;
-    private ArrayList<org.opencv.core.Point> corners=new ArrayList<org.opencv.core.Point>();
 
     private static native void niBlackThreshold(long matAddrIn, long matAddrOut);
     @Override
@@ -60,34 +59,6 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setSupportActionBar(toolbar);
         imageView=(ImageView)findViewById(R.id.inputImageView);
-        imageView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                Log.i(TAG, "event.getX(), event.getY(): " + event.getX() +" "+ event.getY());
-                if(sampledImage!=null) {
-                    Log.i(TAG, "sampledImage.width(), sampledImage.height(): " + sampledImage.width() +" "+ sampledImage.height());
-                    Log.i(TAG, "view.getWidth(), view.getHeight(): " + view.getWidth() +" "+ view.getHeight());
-                    int left=(view.getWidth()-sampledImage.width())/2;
-                    int top=(view.getHeight()-sampledImage.height())/2;
-                    int right=(view.getWidth()+sampledImage.width())/2;
-                    int bottom=(view.getHeight()+sampledImage.height())/2;
-                    Log.i(TAG, "left: " + left +" right: "+ right +" top: "+ top +" bottom:"+ bottom);
-                    if(event.getX()>=left && event.getX()<=right && event.getY()>=top && event.getY()<=bottom) {
-                        int projectedX = (int)event.getX()-left;
-                        int projectedY = (int)event.getY()-top;
-                        org.opencv.core.Point corner = new org.opencv.core.Point(projectedX, projectedY);
-                        corners.add(corner);
-                        if(corners.size()>4)
-                            corners.remove(0);
-                        Mat sampleImageCopy=sampledImage.clone();
-                        for(org.opencv.core.Point c : corners)
-                            Imgproc.circle(sampleImageCopy, c, (int) 5, new Scalar(0, 0, 255), 2);
-                        displayImage(sampleImageCopy);
-                    }
-                }
-                return false;
-            }
-        });
 
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, getRequiredPermissions(), REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
@@ -246,12 +217,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
 
-            case R.id.action_transformer:
-                if(isImageLoaded()) {
-                    perspectiveTransform();
-                }
-                return true;
-
             default:
                 // If we got here, the user's action was not recognized.
                 // Invoke the superclass to handle it.
@@ -351,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
         }
         displayImage(binImage);
     }
-    private final boolean useColor=false;
+    private final boolean useColor=true;
     private void contrast(){
         Mat grayImage=new Mat();
         Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
@@ -391,10 +356,26 @@ public class MainActivity extends AppCompatActivity {
         lookUpTable.put(0, 0, lookUpTableData);
 
         Mat out=new Mat();
-        Mat grayImage = new Mat();
-        Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
+        if(useColor){
+            Mat HSV=new Mat();
+            Imgproc.cvtColor(sampledImage, HSV, Imgproc.COLOR_RGB2HSV);
+            ArrayList<Mat> hsv_list = new ArrayList(3);
+            Core.split(HSV,hsv_list);
 
-        Core.LUT(grayImage, lookUpTable, out);
+            for(int channel=1;channel<=2;++channel) {
+                Mat corrected = new Mat();
+                Core.LUT(hsv_list.get(channel), lookUpTable, corrected);
+                hsv_list.set(channel, corrected);
+            }
+            Core.merge(hsv_list,HSV);
+            Imgproc.cvtColor(HSV, out, Imgproc.COLOR_HSV2RGB);
+        }
+        else {
+            Mat grayImage = new Mat();
+            Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
+
+            Core.LUT(grayImage, lookUpTable, out);
+        }
         displayImage(out);
     }
     private byte saturate(double val) {
@@ -404,8 +385,23 @@ public class MainActivity extends AppCompatActivity {
     }
     private void equalizeHisto(){
         Mat out=new Mat();
-        Imgproc.cvtColor(sampledImage, out, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.equalizeHist(out, out);
+        if(useColor){
+            Mat HSV=new Mat();
+            Imgproc.cvtColor(sampledImage, HSV, Imgproc.COLOR_RGB2HSV);
+            ArrayList<Mat> hsv_list = new ArrayList(3);
+            Core.split(HSV,hsv_list);
+            for(int channel=1;channel<=2;++channel) {
+                Mat equalizedValue = new Mat();
+                Imgproc.equalizeHist(hsv_list.get(channel), equalizedValue);
+                hsv_list.set(channel, equalizedValue);
+            }
+            Core.merge(hsv_list,HSV);
+            Imgproc.cvtColor(HSV, out, Imgproc.COLOR_HSV2RGB);
+        }
+        else {
+            Imgproc.cvtColor(sampledImage, out, Imgproc.COLOR_RGB2GRAY);
+            Imgproc.equalizeHist(out, out);
+        }
         displayImage(out);
     }
     private void blur(){
@@ -543,104 +539,4 @@ public class MainActivity extends AppCompatActivity {
     {
         imageView.setImageBitmap(bitmap);
     }
-    private void perspectiveTransform(){
-        if(corners.size()<4){
-            Toast.makeText(getApplicationContext(),
-                    "It is necessary to choose 4 corners",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        org.opencv.core.Point centroid=new org.opencv.core.Point(0,0);
-        for(org.opencv.core.Point point:corners)
-        {
-            centroid.x+=point.x;
-            centroid.y+=point.y;
-        }
-        centroid.x/=corners.size();
-        centroid.y/=corners.size();
-
-        sortCorners(corners,centroid);
-        Mat correctedImage=new Mat(sampledImage.rows(),sampledImage.cols(),sampledImage.type());
-        Mat srcPoints= Converters.vector_Point2f_to_Mat(corners);
-
-        Mat destPoints=Converters.vector_Point2f_to_Mat(Arrays.asList(new org.opencv.core.Point[]{
-                new org.opencv.core.Point(0, 0),
-                new org.opencv.core.Point(correctedImage.cols(), 0),
-                new org.opencv.core.Point(correctedImage.cols(),correctedImage.rows()),
-                new org.opencv.core.Point(0,correctedImage.rows())}));
-
-        Mat transformation=Imgproc.getPerspectiveTransform(srcPoints, destPoints);
-        Imgproc.warpPerspective(sampledImage, correctedImage, transformation, correctedImage.size());
-
-        corners.clear();
-        displayImage(correctedImage);
-    }
-    void sortCorners(ArrayList<Point> corners, org.opencv.core.Point center)
-    {
-        ArrayList<org.opencv.core.Point> top=new ArrayList<org.opencv.core.Point>();
-        ArrayList<org.opencv.core.Point> bottom=new ArrayList<org.opencv.core.Point>();
-
-        for (int i = 0; i < corners.size(); i++)
-        {
-            if (corners.get(i).y < center.y)
-                top.add(corners.get(i));
-            else
-                bottom.add(corners.get(i));
-        }
-
-        double topLeft=top.get(0).x;
-        int topLeftIndex=0;
-        for(int i=1;i<top.size();i++)
-        {
-            if(top.get(i).x<topLeft)
-            {
-                topLeft=top.get(i).x;
-                topLeftIndex=i;
-            }
-        }
-
-        double topRight=0;
-        int topRightIndex=0;
-        for(int i=0;i<top.size();i++)
-        {
-            if(top.get(i).x>topRight)
-            {
-                topRight=top.get(i).x;
-                topRightIndex=i;
-            }
-        }
-
-        double bottomLeft=bottom.get(0).x;
-        int bottomLeftIndex=0;
-        for(int i=1;i<bottom.size();i++)
-        {
-            if(bottom.get(i).x<bottomLeft)
-            {
-                bottomLeft=bottom.get(i).x;
-                bottomLeftIndex=i;
-            }
-        }
-
-        double bottomRight=bottom.get(0).x;
-        int bottomRightIndex=0;
-        for(int i=1;i<bottom.size();i++)
-        {
-            if(bottom.get(i).x>bottomRight)
-            {
-                bottomRight=bottom.get(i).x;
-                bottomRightIndex=i;
-            }
-        }
-
-        org.opencv.core.Point topLeftPoint = top.get(topLeftIndex);
-        org.opencv.core.Point topRightPoint = top.get(topRightIndex);
-        org.opencv.core.Point bottomLeftPoint = bottom.get(bottomLeftIndex);
-        org.opencv.core.Point bottomRightPoint = bottom.get(bottomRightIndex);
-
-        corners.clear();
-        corners.add(topLeftPoint);
-        corners.add(topRightPoint);
-        corners.add(bottomRightPoint);
-        corners.add(bottomLeftPoint);
-    }
-}
+ }

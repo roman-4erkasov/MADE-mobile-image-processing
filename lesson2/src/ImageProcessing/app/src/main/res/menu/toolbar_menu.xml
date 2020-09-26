@@ -37,8 +37,4 @@
         android:id="@+id/action_fft_filter"
         app:showAsAction="never"
         android:title="@string/action_fft_filter"/>
-    <item
-        android:id="@+id/action_transformer"
-        app:showAsAction="never"
-        android:title="@string/action_PerspectiveTransform"/>
 </menu>
