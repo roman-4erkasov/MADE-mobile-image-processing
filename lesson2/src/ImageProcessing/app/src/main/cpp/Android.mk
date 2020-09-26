@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 #opencv
-OPENCVROOT:= D:/src_code/mobile/OpenCV-android-sdk-20200920-035340--11287
+OPENCVROOT:= /Users/ruaihm4/code/made/mobile/MADE-mobile-image-processing/lesson2/src/ImageProcessing/
 OPENCV_CAMERA_MODULES:=on
 OPENCV_INSTALL_MODULES:=on
 OPENCV_LIB_TYPE:=SHARED

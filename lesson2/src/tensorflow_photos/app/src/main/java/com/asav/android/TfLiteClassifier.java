@@ -8,7 +8,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
+//import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.nnapi.NnApiDelegate;
 
 import java.io.FileInputStream;
@@ -48,15 +48,15 @@ public abstract class TfLiteClassifier {
             nnApiDelegate = new NnApiDelegate(opt);
             options.addDelegate(nnApiDelegate);
         }
-        if (true) {
-            GpuDelegate.Options opt=new GpuDelegate.Options();
-            opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED);
-            //opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER);
-            //opt.setPrecisionLossAllowed(true);
-            //opt.setQuantizedModelsAllowed(true);
-            GpuDelegate delegate = new GpuDelegate();
-            options.addDelegate(delegate);
-        }
+//        if (flase) {
+//            GpuDelegate.Options opt=new GpuDelegate.Options();
+//            opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED);
+//            //opt.setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER);
+//            //opt.setPrecisionLossAllowed(true);
+//            //opt.setQuantizedModelsAllowed(true);
+//            GpuDelegate delegate = new GpuDelegate();
+//            options.addDelegate(delegate);
+//        }
 
         tflite = new Interpreter(loadModelFile(assetManager,model_path),options);
         tflite.allocateTensors();
