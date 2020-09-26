@@ -25,7 +25,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.asav.android.db.SceneData;
+import com.asav.android.SceneData;
 
 import java.io.IOException;
 import java.io.InputStream;
