@@ -26,6 +26,10 @@
         app:showAsAction="never"
         android:title="@string/action_Bilateral"/>
     <item
+        android:id="@+id/action_morphology"
+        app:showAsAction="never"
+        android:title="@string/action_Morphology"/>
+    <item
         android:id="@+id/action_edgedetector"
         app:showAsAction="never"
         android:title="@string/action_EdgeDetector"/>

@@ -232,6 +232,11 @@ public class MainActivity extends AppCompatActivity {
                     bilateral();
                 }
                 return true;
+            case R.id.action_morphology:
+                if(isImageLoaded()) {
+                    morphology();
+                }
+                return true;
             case R.id.action_edgedetector:
                 if(isImageLoaded()) {
                     edgedetector();
@@ -381,6 +386,21 @@ public class MainActivity extends AppCompatActivity {
         Mat rgb=new Mat();
         Imgproc.cvtColor(noisyImage, rgb, Imgproc.COLOR_RGBA2RGB);
         Imgproc.bilateralFilter(rgb,outImage,9,75,75);
+        displayImage(outImage);
+    }
+    private void morphology(){
+        Mat grayImage = new Mat();
+        Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
+        //Imgproc.GaussianBlur(grayImage,grayImage,new Size(5,5),0,0);
+        Mat binImage=new Mat();
+        Imgproc.threshold(grayImage,binImage,0,255,Imgproc.THRESH_BINARY+Imgproc.THRESH_OTSU);
+        final int kernel_size=5;
+        Mat kernel=Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT,new Size(kernel_size,kernel_size));
+        Mat outImage=new Mat();
+        final int num_iterations=1;
+        //Imgproc.erode(binImage,outImage,kernel,new Point(-1,-1),num_iterations);
+        //Imgproc.dilate(binImage,outImage,kernel,new Point(-1,-1),num_iterations);
+        Imgproc.morphologyEx(binImage,outImage,Imgproc.MORPH_OPEN,kernel,new Point(-1,-1),num_iterations);
         displayImage(outImage);
     }
     private void edgedetector(){
