@@ -254,7 +254,6 @@ public class MainActivity extends AppCompatActivity {
                     linesDetector();
                 }
                 return true;
-
             case R.id.action_transformer:
                 if(isImageLoaded()) {
                     perspectiveTransform();
@@ -492,11 +491,42 @@ public class MainActivity extends AppCompatActivity {
                 int line_len=100;
                 Point pt1 = new Point(x0 + line_len * (-sinTheta), y0 + line_len * cosTheta);
                 Point pt2 = new Point(x0 - line_len * (-sinTheta), y0 - line_len * cosTheta);
-                Imgproc.line(binaryImage, pt1, pt2, new Scalar(0, 0, 255), 2);
+                Imgproc.line(binaryImage, pt1, pt2, new Scalar(0, 255, 0), 2);
             }
         }
         displayImage(binaryImage);
     }
+    private void circlesDetector(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final Mat grayImage=new Mat();
+                Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
+                double minDist=10;
+                Mat circles = new Mat();
+                Imgproc.HoughCircles(grayImage, circles, Imgproc.CV_HOUGH_GRADIENT, 0.5,
+                        minDist,150, 50, 10, 150);
+                Imgproc.cvtColor(grayImage, grayImage, Imgproc.COLOR_GRAY2RGB);
+                for (int i = 0; i < circles.rows(); i++)
+                {
+                    double[] circle = circles.get(0, i);
+                    double centerX = circle[0],
+                            centerY = circle[1],
+                            radius = circle[2];
+                    org.opencv.core.Point center = new org.opencv.core.Point(centerX,
+                            centerY);
+                    Imgproc.circle(grayImage, center, (int) radius, new Scalar(0,255,0),3);
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        displayImage(grayImage);
+                    }
+                });
+            }
+        }).start();
+    }
+
     private void extractFeatures(){
         Mat resImage=sampledImage.clone();
         long startTime = SystemClock.uptimeMillis();
