@@ -247,11 +247,14 @@ public class MainActivity extends AppCompatActivity {
                     canny();
                 }
                 return true;
-
-
             case R.id.action_linesdetector:
                 if(isImageLoaded()) {
                     linesDetector();
+                }
+                return true;
+            case R.id.action_circlesdetector:
+                if(isImageLoaded()) {
+                    circlesDetector();
                 }
                 return true;
             case R.id.action_transformer:
@@ -374,9 +377,9 @@ public class MainActivity extends AppCompatActivity {
         displayImage(noisyImage);
     }
     private void median(){
-        Mat noisyImage=getNoisyImage(false);
+        Mat noisyImage=getNoisyImage(true);
         Mat blurredImage=new Mat();
-        Imgproc.medianBlur(noisyImage,blurredImage , 7);
+        Imgproc.medianBlur(noisyImage,blurredImage, 7);
         displayImage(blurredImage);
     }
     private void bilateral(){
@@ -454,14 +457,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void linesDetector(){
-        Mat binaryImage=new Mat();
-        Imgproc.cvtColor(sampledImage, binaryImage, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.Canny(binaryImage, binaryImage, 100, 200);
+        Mat grayImage=new Mat();
+        Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.Canny(grayImage, grayImage, 100, 200);
         Mat lines = new Mat();
         if(true) {
             int threshold = 150;
-            Imgproc.HoughLinesP(binaryImage, lines, 2, 2*Math.PI / 180, threshold);
-            Imgproc.cvtColor(binaryImage, binaryImage, Imgproc.COLOR_GRAY2RGB);
+            Imgproc.HoughLinesP(grayImage, lines, 2, 2*Math.PI / 180, threshold);
+            Imgproc.cvtColor(grayImage, grayImage, Imgproc.COLOR_GRAY2RGB);
             Log.w(TAG, "rows:" + lines.rows() + " cols:" + lines.cols());
             for (int i = 0; i < lines.rows(); i++) {
                 double[] line = lines.get(i, 0);
@@ -472,13 +475,13 @@ public class MainActivity extends AppCompatActivity {
                 org.opencv.core.Point lineStart = new org.opencv.core.Point(xStart,
                         yStart);
                 org.opencv.core.Point lineEnd = new org.opencv.core.Point(xEnd, yEnd);
-                Imgproc.line(binaryImage, lineStart, lineEnd, new Scalar(0, 255, 0), 3);
+                Imgproc.line(grayImage, lineStart, lineEnd, new Scalar(0, 255, 0), 3);
             }
         }
         else{
             int threshold = 200;
-            Imgproc.HoughLines(binaryImage, lines, 2, 2*Math.PI / 180, threshold);
-            Imgproc.cvtColor(binaryImage, binaryImage, Imgproc.COLOR_GRAY2RGB);
+            Imgproc.HoughLines(grayImage, lines, 2, 2*Math.PI / 180, threshold);
+            Imgproc.cvtColor(grayImage, grayImage, Imgproc.COLOR_GRAY2RGB);
             Log.w(TAG, "rows:" + lines.rows() + " cols:" + lines.cols());
             for (int i = 0; i < lines.rows(); i++) {
                 double[] data = lines.get(i, 0);
@@ -491,10 +494,10 @@ public class MainActivity extends AppCompatActivity {
                 int line_len=100;
                 Point pt1 = new Point(x0 + line_len * (-sinTheta), y0 + line_len * cosTheta);
                 Point pt2 = new Point(x0 - line_len * (-sinTheta), y0 - line_len * cosTheta);
-                Imgproc.line(binaryImage, pt1, pt2, new Scalar(0, 255, 0), 2);
+                Imgproc.line(grayImage, pt1, pt2, new Scalar(0, 255, 0), 2);
             }
         }
-        displayImage(binaryImage);
+        displayImage(grayImage);
     }
     private void circlesDetector(){
         new Thread(new Runnable() {

@@ -42,6 +42,10 @@
         app:showAsAction="never"
         android:title="@string/action_LinesDetector"/>
     <item
+        android:id="@+id/action_circlesdetector"
+        app:showAsAction="never"
+        android:title="@string/action_CirclesDetector"/>
+    <item
         android:id="@+id/action_gapi_test"
         app:showAsAction="never"
         android:title="@string/action_GapiTest"/>
