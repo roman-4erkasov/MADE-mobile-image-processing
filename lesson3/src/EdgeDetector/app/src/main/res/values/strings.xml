@@ -5,7 +5,6 @@
     <string name="action_PerspectiveTransform">Perspective Transform</string>
     <string name="action_EdgeDetector">Edge detector</string>
     <string name="action_LinesDetector">Detect lines</string>
-    <string name="action_ExtractPointsOfInterest">Extract Points Of Interest</string>
     <string name="action_GapiTest">Test G-API</string>
     <string name="action_Median">Median filter</string>
     <string name="action_Bilateral">Bilateral filter</string>

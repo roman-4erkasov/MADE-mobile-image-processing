@@ -53,8 +53,6 @@ public class MainActivity extends AppCompatActivity {
     private GAPITester tester=null;
     private ArrayList<org.opencv.core.Point> corners=new ArrayList<org.opencv.core.Point>();
 
-    private static native void extractPointsOfInterest(long matAddrIn, long matAddrOut);
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -265,11 +263,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_gapi_test:
                 if(isImageLoaded()) {
                     test_gapi();
-                }
-                return true;
-            case R.id.action_extractpoi:
-                if(isImageLoaded()) {
-                    extractFeatures();
                 }
                 return true;
 
@@ -530,23 +523,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void extractFeatures(){
-        Mat resImage=sampledImage.clone();
-        long startTime = SystemClock.uptimeMillis();
-        if(true)
-            extractPointsOfInterest(sampledImage.getNativeObjAddr(),resImage.getNativeObjAddr());
-        else{
-            Mat grayImage=new Mat();
-            Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
-            MatOfKeyPoint keyPoints=new MatOfKeyPoint();
-
-            FastFeatureDetector detector =FastFeatureDetector.create(80);
-            detector.detect(grayImage, keyPoints);
-            Features2d.drawKeypoints(sampledImage, keyPoints, resImage);
-        }
-        Log.i(TAG, "Timecost to extractPointsOfInterest: " + Long.toString(SystemClock.uptimeMillis() - startTime));
-        displayImage(resImage);
-    }
     private void displayImage(Mat image)
     {
         Bitmap bitmap = Bitmap.createBitmap(image.cols(),

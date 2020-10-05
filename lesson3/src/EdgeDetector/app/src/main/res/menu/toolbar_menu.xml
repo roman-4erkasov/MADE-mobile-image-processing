@@ -49,9 +49,5 @@
         android:id="@+id/action_gapi_test"
         app:showAsAction="never"
         android:title="@string/action_GapiTest"/>
-    <item
-        android:id="@+id/action_extractpoi"
-        app:showAsAction="never"
-        android:title="@string/action_ExtractPointsOfInterest"/>
 
 </menu>
