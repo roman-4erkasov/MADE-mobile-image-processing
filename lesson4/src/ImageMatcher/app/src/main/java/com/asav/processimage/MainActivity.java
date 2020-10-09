@@ -30,6 +30,7 @@ import org.opencv.core.*;
 import org.opencv.features2d.*;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.Map;
@@ -40,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
     private final int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS = 124;
     private ImageView imageView;
     private Mat sampledImage=null;
+    private TfLiteFeatureExtractor featureExtractor=null;
+    private boolean useSuperpoint=false;
 
     private static native void extractPointsOfInterest(long matAddrIn, long matAddrOut);
     private static native void stitchImages(long matAddrIn1,long matAddrIn2, long matAddrOut);
@@ -88,6 +91,13 @@ public class MainActivity extends AppCompatActivity {
         }
     };
     private void init(){
+        try {
+            featureExtractor=new TfLiteFeatureExtractor(getAssets());
+        } catch (IOException e) {
+            Log.e(TAG, "Exception thrown: " + e+" "+Log.getStackTraceString(e));
+            featureExtractor=null;
+            useSuperpoint=false;
+        }
     }
     @Override
     public void onResume()
@@ -321,8 +331,13 @@ public class MainActivity extends AppCompatActivity {
             Mat grayImage=new Mat();
             Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
             MatOfKeyPoint keyPoints=new MatOfKeyPoint();
-            Feature2D detector=getDetector();
-            detector.detect(grayImage, keyPoints);
+            if(useSuperpoint) {
+                Mat descriptors=featureExtractor.processImage(grayImage,keyPoints);
+            }
+            else {
+                Feature2D detector = getDetector();
+                detector.detect(grayImage, keyPoints);
+            }
             Features2d.drawKeypoints(sampledImage, keyPoints, resImage,new Scalar(0,255,0));
         }
         Log.i(TAG, "Timecost to extractPointsOfInterest: " + Long.toString(SystemClock.uptimeMillis() - startTime));
@@ -338,11 +353,14 @@ public class MainActivity extends AppCompatActivity {
 
         Feature2D detector=getDetector();
         MatOfKeyPoint keypointsScene=new MatOfKeyPoint();
-        Mat descriptors=new Mat();
+
+        Mat descriptors;
+        descriptors=new Mat();
         detector.detectAndCompute(imgScene, new Mat(),keypointsScene,descriptors);
 
         MatOfKeyPoint keypointsObject=new MatOfKeyPoint();
-        Mat descriptorsToMatch=new Mat();
+        Mat descriptorsToMatch;
+        descriptorsToMatch=new Mat();
         detector.detectAndCompute(imgObject, new Mat(),keypointsObject,descriptorsToMatch);
 
         DescriptorMatcher matcher =null;
@@ -387,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
         objMat.fromList(obj);
         sceneMat.fromList(scene);
         double ransacReprojThreshold = 3.0;
-        Mat H = Calib3d.findHomography( objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold );
+        Mat H = Calib3d.findHomography(objMat, sceneMat, Calib3d.RANSAC, ransacReprojThreshold);
         //-- Get the corners from the image_1 ( the object to be "detected" )
         Mat objCorners = new Mat(4, 1, CvType.CV_32FC2), sceneCorners = new Mat();
         float[] objCornersData = new float[(int) (objCorners.total() * objCorners.channels())];
@@ -415,7 +433,6 @@ public class MainActivity extends AppCompatActivity {
                 new Point(sceneCornersData[6] + imgObject.cols(), sceneCornersData[7]), new Scalar(0, 255, 0), 4);
         Imgproc.line(imgMatches, new Point(sceneCornersData[6] + imgObject.cols(), sceneCornersData[7]),
                 new Point(sceneCornersData[0] + imgObject.cols(), sceneCornersData[1]), new Scalar(0, 255, 0), 4);
-
         displayImage(imgMatches);
     }
     private Mat createPanorama(Mat...arg0) {
