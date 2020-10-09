@@ -29,6 +29,7 @@ import org.opencv.calib3d.Calib3d;
 import org.opencv.core.*;
 import org.opencv.features2d.*;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.xfeatures2d.HarrisLaplaceFeatureDetector;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -311,12 +312,12 @@ public class MainActivity extends AppCompatActivity {
     private Feature2D getDetector(){
         Feature2D detector;
         if(isBinaryDetector){
-            //detector=HarrisLaplaceFeatureDetector.create(1,0.02f);
             //detector =FastFeatureDetector.create(50);
             detector=ORB.create();
             //detector= BriefDescriptorExtractor.create(256);
         }
         else {
+            //detector= HarrisLaplaceFeatureDetector.create(1,0.02f);
             detector = SIFT.create();
             //detector=BRISK.create();
         }
