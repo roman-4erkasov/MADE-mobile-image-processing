@@ -29,9 +29,11 @@ public class ScenesTfLiteClassifier extends TfLiteClassifier{
     /** Tag for the {@link Log}. */
     private static final String TAG = "ScenesTfLiteClassifier";
 
-    private static final boolean useMobileNet=false;
+    private static final boolean useMobileNet=true;
+    private static final boolean usePrunnedMobileNet=true;
     private static final String MODEL_FILE =
-            useMobileNet?"places_event_mobilenet2_alpha=1.0_augm_ft_sgd_model.tflite":"places_event_enet0_augm_ft_sgd_model.tflite";
+            useMobileNet?(usePrunnedMobileNet?"mobilenet_v2_1.0_pruning_grad_25percent_model_ft.tflite":
+                    "places_event_mobilenet2_alpha=1.0_augm_ft_sgd_model.tflite"):"places_event_enet0_augm_ft_sgd_model.tflite";
     private static final String SCENES_LABELS_FILE =
             "scenes_places.txt";
     private static final String FILTERED_INDICES_FILE =
@@ -149,7 +151,11 @@ public class ScenesTfLiteClassifier extends TfLiteClassifier{
     }
     protected ClassifierResult getResults(float[][][] outputs) {
         TreeMap<String,Float> scene2Score=getCategory2Score(outputs[0][0],sceneLabels,true);
-        TreeMap<String,Float> event2Score=getCategory2Score(outputs[1][0],eventLabels,false);
+        TreeMap<String,Float> event2Score=null;
+        if(usePrunnedMobileNet)
+            event2Score=new TreeMap<>();
+        else
+            event2Score=getCategory2Score(outputs[1][0],eventLabels,false);
         SceneData res=new SceneData(sceneLabels2Index,scene2Score,eventLabels2Index,event2Score);
         return res;
     }
