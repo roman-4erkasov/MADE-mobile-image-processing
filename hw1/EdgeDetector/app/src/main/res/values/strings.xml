@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">EdgeDetector</string>
     <string name="action_OpenGallery">Open Image File</string>
+    <string name="action_camera">Take a photo</string>
     <string name="action_GrayScale">To grayscale</string>
     <string name="action_PerspectiveTransform">Perspective Transform(manual)</string>
     <string name="action_PerspectiveTransformAuto">Perspective Transform(auto)</string>

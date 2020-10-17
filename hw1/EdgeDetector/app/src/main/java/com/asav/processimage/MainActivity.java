@@ -5,15 +5,22 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+
+import androidx.core.content.FileProvider;
 import androidx.exifinterface.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -34,9 +41,16 @@ import org.opencv.features2d.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -200,6 +214,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static final int SELECT_PICTURE = 1;
+    private static final int SELECT_FROM_CAMERA = 2;
+
+//    private void dispatchTakePictureIntent() {
+//        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+//        try {
+//            startActivityForResult(takePictureIntent, SELECT_FROM_CAMERA);
+//
+//        } catch (ActivityNotFoundException e) {
+//            // display error state to the user
+//            Toast.makeText(getApplicationContext(),
+//                    "ActivityNotFoundException",
+//                    Toast.LENGTH_SHORT).show();
+//        }
+//    }
+    private Uri uriphoto;
+    private String pictureFilePath;
+//    private File createImageFile() throws IOException {
+//        // Create an image file name
+//        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+//        String imageFileName = "JPEG_" + timeStamp + "_";
+//        File storageDir = Environment.getExternalStoragePublicDirectory(
+//                Environment.DIRECTORY_PICTURES);
+//        File image = File.createTempFile(
+//                imageFileName,  /* prefix */
+//                ".jpg",         /* suffix */
+//                storageDir      /* directory */
+//        );
+//
+////        // Save a file: path for use with ACTION_VIEW intents
+////        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+//        return image;
+//    }
+    private File createCustomFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        String pictureFile = "ZOFTINO_" + timeStamp;
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(pictureFile,  ".jpg", storageDir);
+        pictureFilePath = image.getAbsolutePath();
+        return image;
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -210,6 +265,60 @@ public class MainActivity extends AppCompatActivity {
                 intent.setAction(Intent.ACTION_GET_CONTENT);
                 startActivityForResult(Intent.createChooser(intent,"Select Picture"),
                         SELECT_PICTURE);
+                return true;
+            case R.id.action_camera:
+                corners.clear();
+                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivityForResult(cameraIntent, SELECT_FROM_CAMERA);
+
+                    File pictureFile = null;
+                    try {
+                        pictureFile = createCustomFile();
+                    } catch (IOException ex) {
+                        Toast.makeText(this,
+                                "Photo file can't be created, please try again",
+                                Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                    if (pictureFile != null) {
+                        Uri photoURI = FileProvider.getUriForFile(this,
+                                "com.zoftino.android.fileprovider",
+                                pictureFile);
+                        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                        startActivityForResult(cameraIntent, SELECT_FROM_CAMERA);
+                    }
+                }
+//                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+//                takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+////                ContextWrapper context = new ContextWrapper(getApplicationContext());
+//                // path to /data/data/yourapp/app_data/imageDir
+////                File directory = context.getDir("imageDir", Context.MODE_PRIVATE);
+//                File directory = Environment.getExternalStorageDirectory();
+//                // Create imageDir
+////                File photoFile = new File(directory,"photo.jpg");
+//                if(!directory.exists()){
+//                    directory.mkdirs();
+//                }
+//
+//                uriphoto = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", new File(directory, "photo.jpg"));
+////                File dir = new File("content://com.asav.processimage.provider/external_files/");
+////                if(!dir.exists()){
+////                    dir.mkdirs();
+////                }
+//
+////                File photoFile = createCustomFile("photo");
+////                uriphoto = Uri.fromFile(photoFile);
+//                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uriphoto);
+//                startActivityForResult(takePictureIntent, SELECT_FROM_CAMERA);
+
+
+//                String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath() + "/Download/testfile.jpg";
+//                Uri imageUri = Uri.fromFile(new File(filename));
+//                takePictureIntent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT,
+//                        imageUri);
+//                startActivityForResult(Intent.createChooser(takePictureIntent,"Select Picture"),
+//                        SELECT_FROM_CAMERA);
                 return true;
 
             case R.id.action_grayscale:
@@ -273,6 +382,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.action_transformer_auto:
+//                dispatchTakePictureIntent();
                 if(isImageLoaded()) {
 //                    perspectiveTransformAuto();
                 }
@@ -291,6 +401,30 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
         return sampledImage!=null;
     }
+
+//    private Bitmap scaleBitmap(Bitmap bm, int maxWidth, int maxHeight) {
+//            int width = bm.getWidth();
+//            int height = bm.getHeight();
+//
+//            if (width > height) {
+//            // landscape
+//            float ratio = width / maxWidth;
+//            width = maxWidth;
+//            height = (int)(height / ratio);
+//            } else if (height > width) {
+//            // portrait
+//            float ratio = height / maxHeight;
+//            height = maxHeight;
+//            width = (int)(width / ratio);
+//            } else {
+//            // square
+//            height = maxHeight;
+//            width = maxWidth;
+//            }
+//
+//            bm = Bitmap.createScaledBitmap(bm, width, height, true);
+//            return bm;
+//    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -298,6 +432,24 @@ public class MainActivity extends AppCompatActivity {
             Uri selectedImageUri = data.getData(); //The uri with the location of the file
             Log.d(TAG,"uri"+selectedImageUri);
             convertToMat(selectedImageUri);
+        }
+        else if (requestCode == SELECT_FROM_CAMERA && resultCode == RESULT_OK) {
+//            String filename = Environment.getExternalStorageDirectory().getPath() + "/Download/testfile.jpg";
+//            Uri imageUri = Uri.fromFile(new File(filename));
+//            convertToMat(imageUri);
+            File imgFile = new  File(pictureFilePath);
+            if(imgFile.exists())            {
+                uriphoto = Uri.fromFile(imgFile);
+                convertToMat(uriphoto);
+            }
+
+
+
+
+//            Bitmap photo = (Bitmap) data.getExtras().get("data");
+//            convertToMat(photo);
+
+//            imageView.setImageBitmap(photo);
         }
     }
     private void convertToMat(Uri selectedImageUri)
@@ -355,7 +507,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return inSampleSize;
     }
-
     private void grayscale(){
         Mat grayImage=new Mat();
         Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);

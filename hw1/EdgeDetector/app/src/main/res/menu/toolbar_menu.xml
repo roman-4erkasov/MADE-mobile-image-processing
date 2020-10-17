@@ -6,6 +6,10 @@
         app:showAsAction="never"
         android:title="@string/action_OpenGallery"/>
     <item
+        android:id="@+id/action_camera"
+        app:showAsAction="never"
+        android:title="@string/action_camera"/>
+    <item
         android:id="@+id/action_transformer"
         app:showAsAction="never"
         android:title="@string/action_PerspectiveTransform"/>
