@@ -552,10 +552,11 @@ public class MainActivity extends AppCompatActivity {
             Mat grayImage = new Mat();
             Imgproc.cvtColor(sampledImage, grayImage, Imgproc.COLOR_RGB2GRAY);
             Imgproc.GaussianBlur(grayImage,grayImage,new Size(5,5),0,0);
-
-            //Imgproc.adaptiveThreshold(grayImage, binImage, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 15, 12);
+            // адаптивный в нашем случае должен отрабатывать лучше всего:
+            // затрет фон вокруг документа(нет резких локальных переходов) + чернила выделяются четче чем клетки страницы
+            Imgproc.adaptiveThreshold(grayImage, binImage, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 10);
             //Imgproc.threshold(grayImage,binImage,128,255,Imgproc.THRESH_BINARY);
-            Imgproc.threshold(grayImage,binImage,0,255,Imgproc.THRESH_BINARY+Imgproc.THRESH_OTSU);
+//            Imgproc.threshold(grayImage,binImage,0,255,Imgproc.THRESH_BINARY+Imgproc.THRESH_OTSU);
         }
         else{
             niBlackThreshold(sampledImage.getNativeObjAddr(),binImage.getNativeObjAddr());
