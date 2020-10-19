@@ -9,6 +9,10 @@ extern "C" {
 #endif
 #undef com_asav_processimage_MainActivity_SELECT_PICTURE
 #define com_asav_processimage_MainActivity_SELECT_PICTURE 1L
+#undef com_asav_processimage_MainActivity_SELECT_FROM_CAMERA
+#define com_asav_processimage_MainActivity_SELECT_FROM_CAMERA 2L
+#undef com_asav_processimage_MainActivity_SELECT_PICTURE_STITCHING
+#define com_asav_processimage_MainActivity_SELECT_PICTURE_STITCHING 3L
 /*
  * Class:     com_asav_processimage_MainActivity
  * Method:    niBlackThreshold
@@ -16,6 +20,14 @@ extern "C" {
  */
 JNIEXPORT void JNICALL Java_com_asav_processimage_MainActivity_niBlackThreshold
   (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     com_asav_processimage_MainActivity
+ * Method:    stitchImages
+ * Signature: (JJJ)V
+ */
+JNIEXPORT void JNICALL Java_com_asav_processimage_MainActivity_stitchImages
+  (JNIEnv *, jclass, jlong, jlong, jlong);
 
 #ifdef __cplusplus
 }

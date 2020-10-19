@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<org.opencv.core.Point> corners=new ArrayList<org.opencv.core.Point>();
 
     private static native void niBlackThreshold(long matAddrIn, long matAddrOut);
+    private static native void stitchImages(long matAddrIn1,long matAddrIn2, long matAddrOut);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,8 +126,8 @@ public class MainActivity extends AppCompatActivity {
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
                     System.loadLibrary("ImageProcessLib");
-                    if(tester==null)
-                        tester=new GAPITester();
+//                    if(tester==null)
+//                        tester=new GAPITester();
                     Log.i(TAG, "After loading all libraries" );
                     Toast.makeText(getApplicationContext(),
                             "OpenCV loaded successfully",
@@ -215,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int SELECT_PICTURE = 1;
     private static final int SELECT_FROM_CAMERA = 2;
+    private static final int SELECT_PICTURE_STITCHING = 3;
 
 //    private void dispatchTakePictureIntent() {
 //        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -388,6 +390,17 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
 
+            case R.id.action_stitchimages:
+                if(isImageLoaded()) {
+                    corners.clear();
+                    Intent stitch_intent = new Intent();
+                    stitch_intent.setType("image/*");
+                    stitch_intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(stitch_intent,"Select Picture"),
+                            SELECT_PICTURE_STITCHING);
+                }
+                return true;
+
             default:
                 // If we got here, the user's action was not recognized.
                 // Invoke the superclass to handle it.
@@ -431,29 +444,50 @@ public class MainActivity extends AppCompatActivity {
         if(requestCode == SELECT_PICTURE && resultCode == RESULT_OK) {
             Uri selectedImageUri = data.getData(); //The uri with the location of the file
             Log.d(TAG,"uri"+selectedImageUri);
-            convertToMat(selectedImageUri);
+            sampledImage=convertToMat(selectedImageUri);
+            if(sampledImage!=null)
+                displayImage(sampledImage);
         }
         else if (requestCode == SELECT_FROM_CAMERA && resultCode == RESULT_OK) {
 //            String filename = Environment.getExternalStorageDirectory().getPath() + "/Download/testfile.jpg";
 //            Uri imageUri = Uri.fromFile(new File(filename));
 //            convertToMat(imageUri);
-            File imgFile = new  File(pictureFilePath);
-            if(imgFile.exists())            {
+            File imgFile = new File(pictureFilePath);
+            if (imgFile.exists()) {
                 uriphoto = Uri.fromFile(imgFile);
-                convertToMat(uriphoto);
+                sampledImage = convertToMat(uriphoto);
+                if (sampledImage != null)
+                    displayImage(sampledImage);
             }
-
-
-
 
 //            Bitmap photo = (Bitmap) data.getExtras().get("data");
 //            convertToMat(photo);
 
 //            imageView.setImageBitmap(photo);
         }
+        else if(requestCode==SELECT_PICTURE_STITCHING && resultCode == RESULT_OK) {
+            Uri selectedImageUri = data.getData(); //The uri with the location of the file
+            Mat image2 = convertToMat(selectedImageUri);
+            Mat resImage = new Mat();
+            long startTime = System.nanoTime();
+            stitchImages(sampledImage.getNativeObjAddr(), image2.getNativeObjAddr(), resImage.getNativeObjAddr());
+            long elapsedTime = System.nanoTime() - startTime;
+            elapsedTime = elapsedTime / 1000000; // Milliseconds (1:1000000)
+            Log.i(this.getClass().getSimpleName(), "OpenCV Stitching 2 images took " + elapsedTime + "ms");
+            if (resImage.rows() <= 0 || resImage.cols() <= 0) {
+                Toast.makeText(getApplicationContext(),
+                        "Panorama not found",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // can do panorama with many photos
+            sampledImage = resImage;
+            displayImage(sampledImage);
+        }
     }
-    private void convertToMat(Uri selectedImageUri)
+    private Mat convertToMat(Uri selectedImageUri)
     {
+        Mat resImage=null;
         try {
             InputStream ims = getContentResolver().openInputStream(selectedImageUri);
             Bitmap bmp=BitmapFactory.decodeStream(ims);
@@ -486,14 +520,14 @@ public class MainActivity extends AppCompatActivity {
             int width = size.x;
             int height = size.y;
             double downSampleRatio= calculateSubSampleSize(rgbImage,width,height);
-            sampledImage=new Mat();
-            Imgproc.resize(rgbImage, sampledImage, new
+            resImage=new Mat();
+            Imgproc.resize(rgbImage, resImage, new
                     Size(),downSampleRatio,downSampleRatio,Imgproc.INTER_AREA);
-            displayImage(sampledImage);
         } catch (Exception e) {
             Log.e(TAG, "Exception thrown: " + e+" "+Log.getStackTraceString(e));
-            sampledImage=null;
+            resImage=null;
         }
+        return resImage;
     }
     private static double calculateSubSampleSize(Mat srcImage, int reqWidth,
                                                  int reqHeight) {

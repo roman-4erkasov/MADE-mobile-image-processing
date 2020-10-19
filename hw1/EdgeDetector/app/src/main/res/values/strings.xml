@@ -19,4 +19,5 @@
     <string name="action_AddNoise">Add noise</string>
     <string name="action_Morphology">Morphology</string>
     <string name="action_CirclesDetector">detect circles</string>
+    <string name="action_StitchImages">Panorama</string>
 </resources>

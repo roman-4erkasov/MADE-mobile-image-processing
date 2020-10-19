@@ -46,10 +46,6 @@
         app:showAsAction="never"
         android:title="@string/action_EqualizeHisto"/>
     <item
-        android:id="@+id/action_blur"
-        app:showAsAction="never"
-        android:title="@string/action_blur"/>
-    <item
         android:id="@+id/action_edgedetector"
         app:showAsAction="never"
         android:title="@string/action_EdgeDetector"/>
@@ -58,8 +54,16 @@
         app:showAsAction="never"
         android:title="@string/action_Canny"/>
     <item
+        android:id="@+id/action_stitchimages"
+        app:showAsAction="never"
+        android:title="@string/action_StitchImages"/>
+    <item
         android:id="@+id/action_linesdetector"
         app:showAsAction="never"
         android:title="@string/action_LinesDetector"/>
+    <item
+        android:id="@+id/action_blur"
+        app:showAsAction="never"
+        android:title="@string/action_blur"/>
 
 </menu>
