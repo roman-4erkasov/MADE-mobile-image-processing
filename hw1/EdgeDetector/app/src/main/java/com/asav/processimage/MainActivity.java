@@ -54,6 +54,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static org.opencv.core.Core.DFT_SCALE;
 import static org.opencv.core.CvType.CV_8U;
@@ -384,9 +385,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.action_transformer_auto:
-//                dispatchTakePictureIntent();
                 if(isImageLoaded()) {
-//                    perspectiveTransformAuto();
+                    autoPerspectiveTransform();
                 }
                 return true;
 
@@ -792,6 +792,45 @@ public class MainActivity extends AppCompatActivity {
     private void displayImage(Bitmap bitmap)
     {
         imageView.setImageBitmap(bitmap);
+    }
+    private void autoPerspectiveTransform(){
+        // Edge Detection
+        Mat grayImage=new Mat();
+        Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.blur(grayImage,grayImage,new Size(3,3));
+        Mat edgeImage=new Mat();
+        Imgproc.Canny(grayImage, edgeImage, 65, 130);
+
+        // Finding Contours
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(edgeImage, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        // Draw Contours
+        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
+        Random rng = new Random(12345);
+        for (int i = 0; i < contours.size(); i++) {
+            Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+            Imgproc.drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, new Point());
+        }
+        displayImage(drawing);
+
+
+
+
+//        outImage =new Mat();
+//        Imgproc.resize(sampledImage, outImage,new Size(),0.5,0.5);
+//        Mat tmpImg=new Mat();
+//        Imgproc.cvtColor(outImage,tmpImg,Imgproc.COLOR_RGB2GRAY);
+//        Imgproc.blur(tmpImg,tmpImg,new Size(5,5));
+//        Mat edges=new Mat();
+//        Imgproc.Canny(tmpImg,edges, 32, 128,3);
+//        ArrayList<Mat> rgb_list = new ArrayList(3);
+//        Core.split(outImage,rgb_list);
+//        Core.bitwise_or(rgb_list.get(1),edges,edges);
+//        rgb_list.set(1,edges);
+//        Core.merge(rgb_list,outImage);
+
     }
     private void perspectiveTransform(){
         if(corners.size()<4){
