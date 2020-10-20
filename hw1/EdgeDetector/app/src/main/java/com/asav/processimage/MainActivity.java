@@ -43,6 +43,7 @@ import org.opencv.utils.Converters;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -794,9 +795,29 @@ public class MainActivity extends AppCompatActivity {
         imageView.setImageBitmap(bitmap);
     }
     private void autoPerspectiveTransform(){
+        // contrast
+        Mat contrast=new Mat();
+        Mat HSV=new Mat();
+        Imgproc.cvtColor(sampledImage, HSV, Imgproc.COLOR_RGB2HSV);
+        ArrayList<Mat> hsv_list = new ArrayList(3);
+        Core.split(HSV,hsv_list);
+
+        for(int channel=1;channel<=2;++channel) {
+            Core.MinMaxLocResult minMaxLocRes = Core.minMaxLoc(hsv_list.get(channel));
+            double minVal = minMaxLocRes.minVal;//+20;
+            double maxVal = minMaxLocRes.maxVal;//-50;
+            Mat corrected = new Mat();
+            hsv_list.get(channel).convertTo(corrected, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+            hsv_list.set(channel, corrected);
+        }
+        Core.merge(hsv_list,HSV);
+        Imgproc.cvtColor(HSV, contrast, Imgproc.COLOR_HSV2RGB);
+
+
+
         // Edge Detection
         Mat grayImage=new Mat();
-        Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.cvtColor(contrast,grayImage, Imgproc.COLOR_RGB2GRAY);
         Imgproc.blur(grayImage,grayImage,new Size(3,3));
         Mat edgeImage=new Mat();
         Imgproc.Canny(grayImage, edgeImage, 65, 130);
@@ -806,32 +827,66 @@ public class MainActivity extends AppCompatActivity {
         Mat hierarchy = new Mat();
         Imgproc.findContours(edgeImage, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
 
-        // Draw Contours
+//        // Draw Contours
+//        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
+//        Random rng = new Random(12345);
+//        for (int i = 0; i < contours.size(); i++) {
+//            Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+//            Imgproc.drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, new Point());
+//        }
+//        displayImage(drawing);
+
+        MatOfPoint2f contour = null;
+        int i_max_contour = -1;
+
+        List<MatOfPoint> approx_contours = new ArrayList<>();
+        for ( MatOfPoint c: contours ) {
+            MatOfPoint2f c2f = new MatOfPoint2f(c.toArray());
+            MatOfPoint2f approx_c2f = new MatOfPoint2f(c.toArray());
+            double peri = Imgproc.arcLength(c2f, true);
+            Imgproc.approxPolyDP(c2f, approx_c2f, 0.15 * peri, true);
+            approx_contours.add(new MatOfPoint(approx_c2f.toArray()));
+
+            if (approx_c2f.toList().size() == 4) {
+                if (contour != null) {
+                    if (Imgproc.contourArea(approx_c2f) > Imgproc.contourArea(contour)) {
+                        contour = new MatOfPoint2f(approx_c2f);
+                        System.out.println("contourArea: " + Imgproc.contourArea(contour));
+                    }
+                } else {
+                    contour = new MatOfPoint2f(approx_c2f);
+                }
+            }
+
+            if (i_max_contour == -1 || Imgproc.contourArea(approx_c2f) > Imgproc.contourArea(approx_contours.get(i_max_contour))){
+                i_max_contour = approx_contours.size() - 1;
+            }
+        }
+
+        // Draw Contour
         Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
         Random rng = new Random(12345);
-        for (int i = 0; i < contours.size(); i++) {
-            Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-            Imgproc.drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, new Point());
+        Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+        Imgproc.drawContours(drawing, Arrays.asList(new MatOfPoint(contour.toArray()), new MatOfPoint(contour.toArray())), 0, color, 8, 8, hierarchy, 0, new Point());
+//        displayImage(drawing);
+
+        // Draw Contours
+//        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
+//        Random rng = new Random(12345);
+        for (int i = 0; i < approx_contours.size(); i++) {
+            Scalar color2 = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
+            Imgproc.drawContours(drawing, contours, i, color2, 1, 8, hierarchy, 0, new Point());
         }
+
+        Imgproc.drawContours(drawing, approx_contours, i_max_contour, color, 4, 8, hierarchy, 0, new Point());
+        System.out.println("MAX contourArea: " + Imgproc.contourArea(approx_contours.get(i_max_contour)));
+        System.out.println("MAX contourNNodes: " + approx_contours.get(i_max_contour).toList().size());
         displayImage(drawing);
 
+        }
 
 
 
-//        outImage =new Mat();
-//        Imgproc.resize(sampledImage, outImage,new Size(),0.5,0.5);
-//        Mat tmpImg=new Mat();
-//        Imgproc.cvtColor(outImage,tmpImg,Imgproc.COLOR_RGB2GRAY);
-//        Imgproc.blur(tmpImg,tmpImg,new Size(5,5));
-//        Mat edges=new Mat();
-//        Imgproc.Canny(tmpImg,edges, 32, 128,3);
-//        ArrayList<Mat> rgb_list = new ArrayList(3);
-//        Core.split(outImage,rgb_list);
-//        Core.bitwise_or(rgb_list.get(1),edges,edges);
-//        rgb_list.set(1,edges);
-//        Core.merge(rgb_list,outImage);
-
-    }
     private void perspectiveTransform(){
         if(corners.size()<4){
             Toast.makeText(getApplicationContext(),
