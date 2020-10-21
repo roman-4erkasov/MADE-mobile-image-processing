@@ -5,9 +5,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.content.ActivityNotFoundException;
-import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -19,16 +16,13 @@ import androidx.exifinterface.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.SystemClock;
 import android.provider.MediaStore;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -37,15 +31,10 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.*;
-import org.opencv.features2d.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Console;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -57,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import static org.opencv.core.Core.DFT_SCALE;
 import static org.opencv.core.CvType.CV_8U;
 
 public class MainActivity extends AppCompatActivity {
@@ -66,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
     private final int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS = 124;
     private ImageView imageView;
     private Mat sampledImage=null;
-    private GAPITester tester=null;
     private ArrayList<org.opencv.core.Point> corners=new ArrayList<org.opencv.core.Point>();
 
     private static native void niBlackThreshold(long matAddrIn, long matAddrOut);
@@ -151,14 +138,12 @@ public class MainActivity extends AppCompatActivity {
     public void onResume()
     {
         super.onResume();
-        if(tester==null) {
-            if (!OpenCVLoader.initDebug()) {
-                Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-                OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
-            } else {
-                Log.d(TAG, "OpenCV library found inside package. Using it!");
-                mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-            }
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+        } else {
+            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
     private String[] getRequiredPermissions() {
@@ -709,34 +694,6 @@ public class MainActivity extends AppCompatActivity {
         Mat edgeImage=new Mat();
         Imgproc.Canny(grayImage, edgeImage, 100, 200);
         displayImage(edgeImage);
-    }
-
-    private void test_gapi(){
-        Mat outImage =null;
-        long startTime = SystemClock.uptimeMillis();
-        if(false) {
-            if (tester != null)
-                outImage = tester.processImage(sampledImage);
-        }
-        else{
-            outImage =new Mat();
-            Imgproc.resize(sampledImage, outImage,new Size(),0.5,0.5);
-            Mat tmpImg=new Mat();
-            Imgproc.cvtColor(outImage,tmpImg,Imgproc.COLOR_RGB2GRAY);
-            Imgproc.blur(tmpImg,tmpImg,new Size(5,5));
-            Mat edges=new Mat();
-            Imgproc.Canny(tmpImg,edges, 32, 128,3);
-            ArrayList<Mat> rgb_list = new ArrayList(3);
-            Core.split(outImage,rgb_list);
-            Core.bitwise_or(rgb_list.get(1),edges,edges);
-            rgb_list.set(1,edges);
-            Core.merge(rgb_list,outImage);
-
-        }
-        //Mat outImage = new Mat();
-        //gapiTest(rgb.getNativeObjAddr(),outImage.getNativeObjAddr());
-        Log.i(TAG, "Timecost to process image in G-API: " + Long.toString(SystemClock.uptimeMillis() - startTime));
-        displayImage(outImage);
     }
 
     private void linesDetector(){
