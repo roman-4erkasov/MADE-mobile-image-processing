@@ -198,48 +198,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static final int SELECT_PICTURE = 1;
-    private static final int SELECT_FROM_CAMERA = 2;
     private static final int SELECT_PICTURE_STITCHING = 3;
 
-//    private void dispatchTakePictureIntent() {
-//        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//        try {
-//            startActivityForResult(takePictureIntent, SELECT_FROM_CAMERA);
-//
-//        } catch (ActivityNotFoundException e) {
-//            // display error state to the user
-//            Toast.makeText(getApplicationContext(),
-//                    "ActivityNotFoundException",
-//                    Toast.LENGTH_SHORT).show();
-//        }
-//    }
     private Uri uriphoto;
-    private String pictureFilePath;
-//    private File createImageFile() throws IOException {
-//        // Create an image file name
-//        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-//        String imageFileName = "JPEG_" + timeStamp + "_";
-//        File storageDir = Environment.getExternalStoragePublicDirectory(
-//                Environment.DIRECTORY_PICTURES);
-//        File image = File.createTempFile(
-//                imageFileName,  /* prefix */
-//                ".jpg",         /* suffix */
-//                storageDir      /* directory */
-//        );
-//
-////        // Save a file: path for use with ACTION_VIEW intents
-////        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
-//        return image;
-//    }
-    private File createCustomFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String pictureFile = "ZOFTINO_" + timeStamp;
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(pictureFile,  ".jpg", storageDir);
-        pictureFilePath = image.getAbsolutePath();
-        return image;
-    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -252,58 +213,6 @@ public class MainActivity extends AppCompatActivity {
                         SELECT_PICTURE);
                 return true;
             case R.id.action_camera:
-                corners.clear();
-                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-                    startActivityForResult(cameraIntent, SELECT_FROM_CAMERA);
-
-                    File pictureFile = null;
-                    try {
-                        pictureFile = createCustomFile();
-                    } catch (IOException ex) {
-                        Toast.makeText(this,
-                                "Photo file can't be created, please try again",
-                                Toast.LENGTH_SHORT).show();
-                        return true;
-                    }
-                    if (pictureFile != null) {
-                        Uri photoURI = FileProvider.getUriForFile(this,
-                                "com.zoftino.android.fileprovider",
-                                pictureFile);
-                        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                        startActivityForResult(cameraIntent, SELECT_FROM_CAMERA);
-                    }
-                }
-//                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//                takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-////                ContextWrapper context = new ContextWrapper(getApplicationContext());
-//                // path to /data/data/yourapp/app_data/imageDir
-////                File directory = context.getDir("imageDir", Context.MODE_PRIVATE);
-//                File directory = Environment.getExternalStorageDirectory();
-//                // Create imageDir
-////                File photoFile = new File(directory,"photo.jpg");
-//                if(!directory.exists()){
-//                    directory.mkdirs();
-//                }
-//
-//                uriphoto = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", new File(directory, "photo.jpg"));
-////                File dir = new File("content://com.asav.processimage.provider/external_files/");
-////                if(!dir.exists()){
-////                    dir.mkdirs();
-////                }
-//
-////                File photoFile = createCustomFile("photo");
-////                uriphoto = Uri.fromFile(photoFile);
-//                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uriphoto);
-//                startActivityForResult(takePictureIntent, SELECT_FROM_CAMERA);
-
-
-//                String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath() + "/Download/testfile.jpg";
-//                Uri imageUri = Uri.fromFile(new File(filename));
-//                takePictureIntent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT,
-//                        imageUri);
-//                startActivityForResult(Intent.createChooser(takePictureIntent,"Select Picture"),
-//                        SELECT_FROM_CAMERA);
                 return true;
 
             case R.id.action_grayscale:
@@ -397,29 +306,6 @@ public class MainActivity extends AppCompatActivity {
         return sampledImage!=null;
     }
 
-//    private Bitmap scaleBitmap(Bitmap bm, int maxWidth, int maxHeight) {
-//            int width = bm.getWidth();
-//            int height = bm.getHeight();
-//
-//            if (width > height) {
-//            // landscape
-//            float ratio = width / maxWidth;
-//            width = maxWidth;
-//            height = (int)(height / ratio);
-//            } else if (height > width) {
-//            // portrait
-//            float ratio = height / maxHeight;
-//            height = maxHeight;
-//            width = (int)(width / ratio);
-//            } else {
-//            // square
-//            height = maxHeight;
-//            width = maxWidth;
-//            }
-//
-//            bm = Bitmap.createScaledBitmap(bm, width, height, true);
-//            return bm;
-//    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -429,23 +315,6 @@ public class MainActivity extends AppCompatActivity {
             sampledImage=convertToMat(selectedImageUri);
             if(sampledImage!=null)
                 displayImage(sampledImage);
-        }
-        else if (requestCode == SELECT_FROM_CAMERA && resultCode == RESULT_OK) {
-//            String filename = Environment.getExternalStorageDirectory().getPath() + "/Download/testfile.jpg";
-//            Uri imageUri = Uri.fromFile(new File(filename));
-//            convertToMat(imageUri);
-            File imgFile = new File(pictureFilePath);
-            if (imgFile.exists()) {
-                uriphoto = Uri.fromFile(imgFile);
-                sampledImage = convertToMat(uriphoto);
-                if (sampledImage != null)
-                    displayImage(sampledImage);
-            }
-
-//            Bitmap photo = (Bitmap) data.getExtras().get("data");
-//            convertToMat(photo);
-
-//            imageView.setImageBitmap(photo);
         }
         else if(requestCode==SELECT_PICTURE_STITCHING && resultCode == RESULT_OK) {
             Uri selectedImageUri = data.getData(); //The uri with the location of the file
