@@ -115,8 +115,6 @@ public class MainActivity extends AppCompatActivity {
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
                     System.loadLibrary("ImageProcessLib");
-//                    if(tester==null)
-//                        tester=new GAPITester();
                     Log.i(TAG, "After loading all libraries" );
                     Toast.makeText(getApplicationContext(),
                             "OpenCV loaded successfully",
@@ -171,8 +169,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     }
-
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -643,33 +639,15 @@ public class MainActivity extends AppCompatActivity {
         Imgproc.GaussianBlur(sampledImage,out,new Size(7,7),0,0);
         displayImage(out);
     }
-    private Mat getNoisyImage(boolean add_noise){
-        Mat noisyImage;
-        if(add_noise) {
-            Mat noise = new Mat(sampledImage.size(), sampledImage.type());
-            MatOfDouble mean = new MatOfDouble ();
-            MatOfDouble dev = new MatOfDouble ();
-            Core.meanStdDev(sampledImage,mean,dev);
-            Core.randn(noise,0, 1*dev.get(0,0)[0]);
-            noisyImage = new Mat();
-            Core.add(sampledImage, noise, noisyImage);
-        }
-        else{
-            noisyImage=sampledImage;
-        }
-        return noisyImage;
-    }
     private void median(){
-        Mat noisyImage=getNoisyImage(true);
-        Mat blurredImage=new Mat();
-        Imgproc.medianBlur(noisyImage,blurredImage, 7);
-        displayImage(blurredImage);
+        Mat filteredImage=new Mat();
+        Imgproc.medianBlur(sampledImage,filteredImage, 7);
+        displayImage(filteredImage);
     }
     private void bilateral(){
-        Mat noisyImage=getNoisyImage(false);
         Mat outImage=new Mat();
         Mat rgb=new Mat();
-        Imgproc.cvtColor(noisyImage, rgb, Imgproc.COLOR_RGBA2RGB);
+        Imgproc.cvtColor(sampledImage, rgb, Imgproc.COLOR_RGBA2RGB);
         Imgproc.bilateralFilter(rgb,outImage,9,75,75);
         displayImage(outImage);
     }
@@ -752,42 +730,10 @@ public class MainActivity extends AppCompatActivity {
         imageView.setImageBitmap(bitmap);
     }
     private void autoPerspectiveTransform(){
-        // contrast
-//        Mat grayImage=new Mat();
-//        Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
-//        Core.MinMaxLocResult minMaxLocRes = Core.minMaxLoc(grayImage);
-//        double minVal = minMaxLocRes.minVal;//+20;
-//        double maxVal = minMaxLocRes.maxVal;//-50;
-//        grayImage.convertTo(grayImage, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
-
-
-//        Mat contrast=new Mat();
-//        Mat HSV=new Mat();
-//        Imgproc.cvtColor(sampledImage, HSV, Imgproc.COLOR_RGB2HSV);
-//        ArrayList<Mat> hsv_list = new ArrayList(3);
-//        Core.split(HSV,hsv_list);
-//
-//        for(int channel=1;channel<=2;++channel) {
-//            Core.MinMaxLocResult minMaxLocRes = Core.minMaxLoc(hsv_list.get(channel));
-//            double minVal = minMaxLocRes.minVal;//+20;
-//            double maxVal = minMaxLocRes.maxVal;//-50;
-//            Mat corrected = new Mat();
-//            hsv_list.get(channel).convertTo(corrected, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
-//            hsv_list.set(channel, corrected);
-//        }
-//        Core.merge(hsv_list,HSV);
-//        Imgproc.cvtColor(HSV, contrast, Imgproc.COLOR_HSV2RGB);
-
-
-
-
-
         // Edge Detection
         Mat grayImage=new Mat();
         Mat rgbImage=new Mat();
         Mat filtredImage=new Mat();
-//        Imgproc.cvtColor(sampledImage,grayImage, Imgproc.COLOR_RGB2GRAY);
-//        Imgproc.blur(grayImage,grayImage,new Size(3,3));
         Imgproc.cvtColor(sampledImage, rgbImage, Imgproc.COLOR_RGBA2RGB);
         Imgproc.bilateralFilter(rgbImage,filtredImage,9,75,75);
         Imgproc.cvtColor(filtredImage,grayImage, Imgproc.COLOR_RGB2GRAY);
@@ -799,29 +745,12 @@ public class MainActivity extends AppCompatActivity {
         Mat hierarchy = new Mat();
         Imgproc.findContours(edgeImage, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_TC89_L1);
 
-//        // Draw Contours
-//        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
-//        Random rng = new Random(12345);
-//        for (int i = 0; i < contours.size(); i++) {
-//            Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-//            Imgproc.drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, new Point());
-//        }
-//        displayImage(drawing);
-
         MatOfPoint2f contour = null;
-        int i_max_contour = -1;
-
-        List<MatOfPoint> approx_contours = new ArrayList<>();
         for ( MatOfPoint c: contours ) {
             MatOfPoint2f c2f = new MatOfPoint2f(c.toArray());
             MatOfPoint2f approx_c2f = new MatOfPoint2f(c.toArray());
             double peri = Imgproc.arcLength(c2f, true);
             Imgproc.approxPolyDP(c2f, approx_c2f, 0.15 * peri, true);
-//            if (Imgproc.contourArea(approx_c2f) < 50)
-//            {
-//                continue;
-//            }
-            approx_contours.add(new MatOfPoint(approx_c2f.toArray()));
 
             if (approx_c2f.toList().size() == 4) {
                 if (contour != null) {
@@ -833,38 +762,11 @@ public class MainActivity extends AppCompatActivity {
                     contour = new MatOfPoint2f(approx_c2f);
                 }
             }
-
-            if (i_max_contour == -1 || Imgproc.contourArea(approx_c2f) > Imgproc.contourArea(approx_contours.get(i_max_contour))){
-                i_max_contour = approx_contours.size() - 1;
-            }
         }
-
-        // Draw Contour
-        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
-        Random rng = new Random(12345);
-        Scalar color = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-        Imgproc.drawContours(drawing, Arrays.asList(new MatOfPoint(contour.toArray()), new MatOfPoint(contour.toArray())), 0, color, 8, 8, hierarchy, 0, new Point());
-////        displayImage(drawing);
-
-        // Draw Contours
-//        Mat drawing = Mat.zeros(edgeImage.size(), CvType.CV_8UC3);
-//        Random rng = new Random(12345);
-        for (int i = 0; i < approx_contours.size(); i++) {
-            Scalar color2 = new Scalar(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-            Imgproc.drawContours(drawing, contours, i, color2, 1, 8, hierarchy, 0, new Point());
-        }
-
-//        Imgproc.drawContours(drawing, approx_contours, i_max_contour, color, 4, 8, hierarchy, 0, new Point());
-        System.out.println("MAX contourArea: " + Imgproc.contourArea(approx_contours.get(i_max_contour)));
-        System.out.println("MAX contourNNodes: " + approx_contours.get(i_max_contour).toList().size());
-        displayImage(drawing);
 
         corners = new ArrayList<org.opencv.core.Point>(contour.toList());
         perspectiveTransform();
-
         }
-
-
 
     private void perspectiveTransform(){
         if(corners.size()<4){
