@@ -1,6 +1,6 @@
 Please, review [TensorFlow instruction](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_on_mobile_tf2.md).
 Example (Tensorflow 1.x!!!)
-1. Download ssd_mobilenetv2_oidv4 frodel [from](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf1_detection_zoo.md)
+1. Download ssd_mobilenetv2_oidv4 model from [TensorFlow Object Detection Model Zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf1_detection_zoo.md)
 2. Install TensorFlow [ObjectDetection API](https://github.com/tensorflow/models/tree/master/research/object_detection)
 3. Run the following code from research folder (D:\src_code\models\research in my example)
 ```
