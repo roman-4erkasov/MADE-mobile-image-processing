@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">EdgeDetector</string>
+    <string name="action_OpenGallery">Open Image File</string>
+    <string name="action_camera">Take a photo</string>
+    <string name="action_GrayScale">To grayscale</string>
+    <string name="action_PerspectiveTransform">Perspective Transform(manual)</string>
+    <string name="action_PerspectiveTransformAuto">Perspective Transform(auto)</string>
+    <string name="action_EdgeDetector">Edge detector</string>
+    <string name="action_LinesDetector">Detect lines</string>
+    <string name="action_GapiTest">Test G-API</string>
+    <string name="action_Median">Median filter</string>
+    <string name="action_Bilateral">Bilateral filter</string>
+    <string name="action_Binary">To binary</string>
+    <string name="action_EqualizeHisto">Equalize Histogram</string>
+    <string name="action_Gamma">Gamma correction</string>
+    <string name="action_Contrast">Contrast enhancement</string>
+    <string name="action_blur">Gaussian blur</string>
+    <string name="action_Canny">Canny</string>
+    <string name="action_AddNoise">Add noise</string>
+    <string name="action_Morphology">Morphology</string>
+    <string name="action_CirclesDetector">detect circles</string>
+    <string name="action_StitchImages">Panorama</string>
+</resources>
