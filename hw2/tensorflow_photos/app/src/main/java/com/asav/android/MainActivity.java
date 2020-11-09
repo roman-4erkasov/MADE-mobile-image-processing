@@ -11,6 +11,8 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.SystemClock;
+
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -55,7 +57,7 @@ public class MainActivity extends FragmentActivity {
     private String[] categoryList;
 
     private List<Map<String,Map<String, Set<String>>>> categoriesHistograms=new ArrayList<>();
-    private List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files=new ArrayList<>();
+//    private List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files=new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,9 +78,9 @@ public class MainActivity extends FragmentActivity {
             categoriesHistograms.add(new HashMap<>());
         }
 
-        for(int i=0;i<categoryList.length-2;++i){
-            eventTimePeriod2Files.add(new HashMap<>());
-        }
+//        for(int i=0;i<categoryList.length-2;++i){
+//            eventTimePeriod2Files.add(new HashMap<>());
+//        }
 
         photoProcessor = PhotoProcessor.getPhotoProcessor(this);
         photosTaken = photoProcessor.getCameraImages();
@@ -113,10 +115,10 @@ public class MainActivity extends FragmentActivity {
         photoProcessingThread.start();
     }
     public synchronized List<Map<String,Map<String, Set<String>>>> getCategoriesHistograms(boolean allLogs){
-        if (allLogs)
-            return categoriesHistograms;
-        else
-            return eventTimePeriod2Files;
+//        if (allLogs)
+        return categoriesHistograms;
+//        else
+//            return eventTimePeriod2Files;
     }
 
     private void processAllPhotos(){
@@ -179,9 +181,9 @@ public class MainActivity extends FragmentActivity {
     private synchronized void processRecognitionResults(ImageAnalysisResults results){
         String filename=results.filename;
 
-        List<Map<String,Map<String, Set<String>>>> newEventTimePeriod2Files = deepCopyCategories(eventTimePeriod2Files);
-        photoProcessor.updateSceneInEvents(newEventTimePeriod2Files,filename);
-        eventTimePeriod2Files=newEventTimePeriod2Files;
+//        List<Map<String,Map<String, Set<String>>>> newEventTimePeriod2Files = deepCopyCategories(eventTimePeriod2Files);
+//        photoProcessor.updateSceneInEvents(newEventTimePeriod2Files,filename);
+//        eventTimePeriod2Files=newEventTimePeriod2Files;
         //eventTimePeriod2Files=photoProcessor.updateSceneInEvents(categoryList.length-2);
 
         String location=results.locations.description;

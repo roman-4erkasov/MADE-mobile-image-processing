@@ -18,6 +18,13 @@ import com.asav.android.db.ImageAnalysisResults;
 import com.asav.android.db.EXIFData;
 import com.asav.android.db.RectFloat;
 import com.asav.android.db.SceneData;
+import com.asav.android.mtcnn.Box;
+import com.asav.android.mtcnn.MTCNNModel;
+
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.EOFException;
 import java.io.File;
@@ -41,26 +48,35 @@ public class PhotoProcessor {
     private static final String TAG = "PhotoProcessor";
 
     private ScenesTfLiteClassifier scenesClassifier;
+    private AgeGenderEthnicityTfLiteClassifier facialAttributeClassifier;
 
     private ConcurrentHashMap<String, SceneData> scenes = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, FaceData> faces = new ConcurrentHashMap<>();
     private static final String IMAGE_SCENES_FILENAME = "image_scenes";
+    private static final String IMAGE_FACES_FILENAME = "image_faces";
 
     private ConcurrentHashMap<String, EXIFData> exifs = new ConcurrentHashMap<>();
     private static final String IMAGE_EXIF_FILENAME = "image_exif";
 
     private static final boolean resetScenesModel = false;
+    private static final boolean resetFacesModel = false;
+
+    private MTCNNModel mtcnnFaceDetector=null;
+    private static int minFaceSize=40;
 
     private final Context context;
     private Geocoder geocoder;
 
     private Map<String, Long> photosTaken = new LinkedHashMap<>();
     private Map<String, Set<String>> date2files = new LinkedHashMap<>();
-    private static final int MIN_PHOTOS_PER_DAY = 3;
-    private int avgNumPhotosPerDay = MIN_PHOTOS_PER_DAY;
+//    private static final int MIN_PHOTOS_PER_DAY = 3;
+//    private int avgNumPhotosPerDay = MIN_PHOTOS_PER_DAY;
 
 
     private Map<String, SceneData> file2Scene = new LinkedHashMap<>();
+    private Map<String, FaceData> file2Face = new LinkedHashMap<>();
     private List<Map<String, Long>> sceneClusters = new LinkedList<>();
+    private List<Map<String, Long>> faceClusters = new LinkedList<>();
 
 
     private PhotoProcessor(final Activity context) {
@@ -68,7 +84,7 @@ public class PhotoProcessor {
         geocoder = new Geocoder(context, Locale.US);//, Locale.getDefault());
         initPhotosTaken();
         loadImageResults();
-        loadModels();
+        loadModels(context);
     }
 
     private static PhotoProcessor instance;
@@ -80,16 +96,18 @@ public class PhotoProcessor {
         return instance;
     }
 
-    public Map<String, SceneData> getFile2Scene() {
-        return file2Scene;
-    }
-
-
-    private void loadModels() {
+    private void loadModels(final Activity context) {
         try {
             scenesClassifier = new ScenesTfLiteClassifier(context);
+            facialAttributeClassifier = new AgeGenderEthnicityTfLiteClassifier(context);
+
+            try {
+                mtcnnFaceDetector = MTCNNModel.Companion.create(context.getAssets());
+            } catch (final Exception e) {
+                Log.e(TAG, "Exception initializing MTCNNModel!"+e);
+            }
         } catch (IOException e) {
-            Log.e(TAG, "Failed to load ScenesTfClassifier.", e);
+            Log.e(TAG, "Failed to load ScenesTfClassifier or AgeGenderEthnicityTfLiteClassifier.", e);
         }
     }
 
@@ -147,15 +165,26 @@ public class PhotoProcessor {
 
     private void loadImageResults() {
         context.deleteFile("image_scenes");
+        context.deleteFile("image_faces");
         scenes = readObjectMap(context, IMAGE_SCENES_FILENAME);
+        faces = readObjectMap(context, IMAGE_FACES_FILENAME);
         exifs = readObjectMap(context, IMAGE_EXIF_FILENAME);
         if (resetScenesModel) {
             scenes = new ConcurrentHashMap<>();
             context.deleteFile(IMAGE_SCENES_FILENAME);
         }
+        if (resetFacesModel) {
+            faces = new ConcurrentHashMap<>();
+            context.deleteFile(IMAGE_FACES_FILENAME);
+        }
         try {
             if (scenes.isEmpty()) {
                 ObjectOutputStream os = new ObjectOutputStream(context.openFileOutput(IMAGE_SCENES_FILENAME, Context.MODE_PRIVATE));
+                os.writeObject("topCategories");
+                os.close();
+            }
+            if (faces.isEmpty()) {
+                ObjectOutputStream os = new ObjectOutputStream(context.openFileOutput(IMAGE_FACES_FILENAME, Context.MODE_PRIVATE));
                 os.writeObject("topCategories");
                 os.close();
             }
@@ -180,6 +209,16 @@ public class PhotoProcessor {
         return scene;
     }
 
+    private synchronized FaceData classifyFaces(Bitmap bmp, StringBuilder text) {
+        long startTime = SystemClock.uptimeMillis();
+        Bitmap facesBitmap = Bitmap.createScaledBitmap(bmp, facialAttributeClassifier.getImageSizeX(), facialAttributeClassifier.getImageSizeY(), false);
+        FaceData face = (FaceData) facialAttributeClassifier.classifyFrame(facesBitmap);
+        long faceTimeCost = SystemClock.uptimeMillis() - startTime;
+        Log.i(TAG, "Timecost to run face model inference: " + Long.toString(faceTimeCost));
+        text.append("Faces:").append(faceTimeCost).append(" ms\n");
+        return face;
+    }
+
     private Bitmap cropBitmap(Bitmap bmp, RectFloat bbox_f){
         Rect bbox = new Rect((int) (bbox_f.left * bmp.getWidth()), (int) (bbox_f.top * bmp.getHeight()),
                 (int) (bbox_f.right * bmp.getWidth()), (int) (bbox_f.bottom * bmp.getHeight()));
@@ -202,16 +241,6 @@ public class PhotoProcessor {
         return Bitmap.createBitmap(bmp, x, y, w, h);
     }
 
-    public ImageAnalysisResults getImageAnalysisResultsWOCache(String filename, Bitmap bmp, StringBuilder text) {
-        if (bmp == null)
-            bmp = loadBitmap(filename);
-        SceneData scene = classifyScenes(bmp, text);
-        EXIFData exifData=getEXIFData(filename);
-        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene, exifData);
-        return res;
-    }
-
-
     public ImageAnalysisResults getImageAnalysisResults(String filename, Bitmap bmp, StringBuilder text,boolean needScene)
     {
         String key = getKey(filename);
@@ -225,11 +254,27 @@ public class PhotoProcessor {
                 save(context, IMAGE_SCENES_FILENAME, scenes, key, scene);
             }
         }
-        else
+        else {
             scene=scenes.get(key);
+        }
+
+        FaceData face=null;
+        if (!faces.containsKey(key)) {
+            if(needScene) {
+                if (bmp == null)
+                    bmp = loadBitmap(filename);
+
+
+                face = classifyFaces(bmp, text);
+                save(context, IMAGE_FACES_FILENAME, faces, key, face);
+            }
+        }
+        else
+            face=faces.get(key);
 
         EXIFData exifData=getEXIFData(filename);
-        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene,exifData);
+//        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene,exifData);
+        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene, face ,exifData);
         return res;
     }
 
@@ -361,39 +406,41 @@ public class PhotoProcessor {
             Log.e(TAG, "Exception thrown: " + e);
         }
 
-        avgNumPhotosPerDay=0;
-        for(Set<String> files : date2files.values())
-            avgNumPhotosPerDay+=files.size();
-
-        if(!date2files.isEmpty())
-            avgNumPhotosPerDay/=date2files.size();
-        if (avgNumPhotosPerDay<MIN_PHOTOS_PER_DAY)
-            avgNumPhotosPerDay=MIN_PHOTOS_PER_DAY;
+//        avgNumPhotosPerDay=0;
+//        for(Set<String> files : date2files.values())
+//            avgNumPhotosPerDay+=files.size();
+//
+//        if(!date2files.isEmpty())
+//            avgNumPhotosPerDay/=date2files.size();
+//        if (avgNumPhotosPerDay<MIN_PHOTOS_PER_DAY)
+//            avgNumPhotosPerDay=MIN_PHOTOS_PER_DAY;
     }
 
     public Map<String,Long> getCameraImages() {
         return photosTaken;
     }
 
-    private void addDayEvent(List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files, String category, String timePeriod, Set<String> filenames){
-        int highLevelCategory=getHighLevelCategory(category);
-        if(highLevelCategory>=0) {
-            Map<String,Map<String,Set<String>>> histo=eventTimePeriod2Files.get(highLevelCategory);
-            if(!histo.containsKey(category))
-                histo.put(category,new TreeMap<>(Collections.reverseOrder()));
-            histo.get(category).put(timePeriod,filenames);
+//    private void addDayEvent(List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files, String category, String timePeriod, Set<String> filenames){
+//        int highLevelCategory=getHighLevelCategory(category);
+//        if(highLevelCategory>=0) {
+//            Map<String,Map<String,Set<String>>> histo=eventTimePeriod2Files.get(highLevelCategory);
+//            if(!histo.containsKey(category))
+//                histo.put(category,new TreeMap<>(Collections.reverseOrder()));
+//            histo.get(category).put(timePeriod,filenames);
+//
+//            //Log.d(TAG,"EVENTS!!! "+timePeriod+":"+category+" ("+highLevelCategory+"), "+filenames.size());
+//        }
+//    }
 
-            //Log.d(TAG,"EVENTS!!! "+timePeriod+":"+category+" ("+highLevelCategory+"), "+filenames.size());
-        }
-    }
-    public void updateSceneInEvents(List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files, String filename) {
+//    public void updateSceneInEvents(List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files, String filename) {
+    public void updateSceneInEvents(String filename) {
         if (photosTaken.containsKey(filename)) {
             String strDate=getDateFromTimeInMillis(photosTaken.get(filename));
             if (date2files.containsKey(strDate)){
                 Set<String> files=date2files.get(strDate);
 
-                if(files.size()<avgNumPhotosPerDay)
-                    return;
+//                if(files.size()<avgNumPhotosPerDay)
+//                    return;
                 boolean allResultsAvailable=true;
                 for (String f : files)
                     if(!file2Scene.containsKey(f)) {
@@ -407,35 +454,35 @@ public class PhotoProcessor {
 
                 for(Map.Entry<String,Integer> entry:scenesClassifier.sceneLabels2Index.entrySet()) {
                     int i=entry.getValue();
-                    float avgScore=0;
+//                    float avgScore=0;
                     Set<String> scene_filenames=new TreeSet<>();
                     for(String f: files) {
                         float score=file2Scene.get(f).scenes.scores[i];
-                        avgScore+=score;
+//                        avgScore+=score;
                         if(score>=SceneData.SCENE_DISPLAY_THRESHOLD)
                             scene_filenames.add(f);
                     }
-                    avgScore/=files.size();
+//                    avgScore/=files.size();
 
-                    if(avgScore>=SceneData.SCENE_CATEGORY_THRESHOLD && scene_filenames.size()>=2)
-                        addDayEvent(eventTimePeriod2Files,entry.getKey(), strDate,scene_filenames);
+//                    if(avgScore>=SceneData.SCENE_CATEGORY_THRESHOLD && scene_filenames.size()>=2)
+//                        addDayEvent(eventTimePeriod2Files,entry.getKey(), strDate,scene_filenames);
                 }
 
                 for(Map.Entry<String,Integer> entry:scenesClassifier.eventLabels2Index.entrySet()) {
                     int i=entry.getValue();
-                    float avgScore=0;
+//                    float avgScore=0;
                     Set<String> scene_filenames=new TreeSet<>();
                     for(String f: files) {
                         float score=file2Scene.get(f).events.scores[i];
-                        avgScore+=score;
+//                        avgScore+=score;
                         if(score>=SceneData.EVENT_DISPLAY_THRESHOLD)
                             scene_filenames.add(f);
                     }
-                    avgScore/=files.size();
+//                    avgScore/=files.size();
 
-                    if((avgScore>=SceneData.EVENT_CATEGORY_THRESHOLD && scene_filenames.size()>=2) ||
-                            scene_filenames.size()>=4)
-                        addDayEvent(eventTimePeriod2Files,entry.getKey(), strDate,scene_filenames);
+//                    if((avgScore>=SceneData.EVENT_CATEGORY_THRESHOLD && scene_filenames.size()>=2) ||
+//                            scene_filenames.size()>=4)
+//                        addDayEvent(eventTimePeriod2Files,entry.getKey(), strDate,scene_filenames);
                 }
             }
         }
