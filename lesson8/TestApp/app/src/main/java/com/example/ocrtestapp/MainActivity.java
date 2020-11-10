@@ -150,19 +150,24 @@ public class MainActivity extends AppCompatActivity {
             p_text.setColor(Color.RED);
             p_text.setStyle(Paint.Style.FILL);
             p_text.setColor(Color.BLACK);
-            p_text.setTextSize(20);
 
+            StringBuilder str=new StringBuilder();
             for (Text.TextBlock block : visionText.getTextBlocks()) {
                 for (Text.Line line : block.getLines()) {
                     for (Text.Element element : line.getElements()) {
                         String txt = element.getText();
+                        str.append(txt).append(' ');
                         Rect frame = element.getBoundingBox();
 
                         c.drawRect(frame, p);
+                        p_text.setTextSize(Math.max(20,frame.height()/2));
+
                         c.drawText(txt, frame.left, Math.max(20, frame.top - 20), p_text);
                     }
                 }
+                str.append('\n');
             }
+            Log.w(TAG,"Recognized text:"+str.toString());
         } catch (Exception e) {
             Log.e(TAG, "Exception thrown: ", e);
             bmp = null;
