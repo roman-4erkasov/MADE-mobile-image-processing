@@ -295,7 +295,7 @@ public class Photos extends Fragment {
                         );
 
                         c.drawRect(bbox, p);
-                        c.drawText(face.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
+                        c.drawText(face.faceData.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
                         Log.i(TAG, face.toString());
 
                     }
