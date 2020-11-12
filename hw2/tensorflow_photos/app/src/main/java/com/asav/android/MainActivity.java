@@ -29,6 +29,9 @@ import com.asav.android.db.ImageAnalysisResults;
 import com.asav.android.db.TopCategoriesData;
 import com.asav.android.db.RectFloat;
 
+import org.apache.commons.math3.ml.clustering.Cluster;
+import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
+
 import java.io.File;
 import java.util.*;
 
@@ -57,6 +60,7 @@ public class MainActivity extends FragmentActivity {
     private String[] categoryList;
 
     private List<Map<String,Map<String, Set<String>>>> categoriesHistograms=new ArrayList<>();
+    private Map<Integer, List<FeaturesPoint>> clusterId2point = new HashMap();
 //    private List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files=new ArrayList<>();
 
     @Override
@@ -120,9 +124,14 @@ public class MainActivity extends FragmentActivity {
 //        else
 //            return eventTimePeriod2Files;
     }
+    public synchronized Map<Integer, List<FeaturesPoint>> getClusterId2point(){
+        return clusterId2point;
+    }
 
     private void processAllPhotos(){
         //ImageAnalysisResults previousPhotoProcessedResult=null;
+        List<FeaturesPoint> face_points = new ArrayList<>();
+
         for(;currentPhotoIndex<photosTaken.size();++currentPhotoIndex){
             String filename=photosFilenames.get(currentPhotoIndex);
             try {
@@ -131,6 +140,9 @@ public class MainActivity extends FragmentActivity {
                 if (file.exists()) {
                     long startTime = SystemClock.uptimeMillis();
                     ImageAnalysisResults res = photoProcessor.getImageAnalysisResults(filename);
+                    for (FaceFeatures face: res.faceFeatures){
+                        face_points.add(new FeaturesPoint(res, face.faceData.features));
+                    }
 
                     long endTime = SystemClock.uptimeMillis();
                     Log.d(TAG, "!!Processed: "+ filename+" in background thread:" + Long.toString(endTime - startTime));
@@ -148,6 +160,21 @@ public class MainActivity extends FragmentActivity {
                 Log.e(TAG, "While  processing image" + filename + " exception thrown: " + e);
             }
         }
+
+        DBSCANClusterer<FeaturesPoint> clusterer = new DBSCANClusterer(1, 2);
+        List<Cluster<FeaturesPoint>> clusters = clusterer.cluster(face_points);
+        for(int i = 0; i < clusters.size(); ++i)
+        {
+            List<FeaturesPoint> cluster_points = clusters.get(i).getPoints();
+            clusterId2point.put(i, cluster_points);
+        }
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                preferencesFragment.updateChart();
+            }
+        });
     }
 
 
@@ -198,12 +225,12 @@ public class MainActivity extends FragmentActivity {
 
         categoriesHistograms=newCategoriesHistograms;
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                preferencesFragment.updateChart();
-            }
-        });
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                preferencesFragment.updateChart();
+//            }
+//        });
     }
 
     public void PreferencesClick(View view) {
