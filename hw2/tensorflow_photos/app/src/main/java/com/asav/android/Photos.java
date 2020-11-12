@@ -29,6 +29,7 @@ import androidx.annotation.Nullable;
 import com.asav.android.db.ImageAnalysisResults;
 import com.asav.android.db.TopCategoriesData;
 import com.asav.android.db.RectFloat;
+import com.asav.android.mtcnn.Box;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -244,11 +245,42 @@ public class Photos extends Fragment {
                     p.setColor(Color.BLUE);
                     p.setStrokeWidth(10);
                     c.drawBitmap(bmp, 0, 0, null);
+
+                    Paint p_text = new Paint();
+                    p_text.setColor(Color.WHITE);
+                    p_text.setStyle(Paint.Style.FILL);
+                    p_text.setColor(Color.GREEN);
+                    p_text.setTextSize(24);
+
                     ImageAnalysisResults res = photoProcessor.getImageAnalysisResults(filename, bmp, text, true);
                     //res = photoProcessor.getImageAnalysisResultsFromServer(filename, bmp);
-                    text.append(res.locations.toString()).append("\n\n");
 
-                    text.append(res.scene).append("\n");
+                    // text
+                    text.append(res.locations.toString()).append("\n\n");
+                    text.append(res.scene).append("\n\n");
+
+                    if (!res.faceFeatures.isEmpty())
+                    {
+                        text.append("Faces:\n");
+                        for (int i = 0; i < res.faceFeatures.size(); ++i)
+                        {
+                            FaceData face = res.faceFeatures.get(i).faceData;
+                            text.append(face).append("\n");
+
+                            // bbox
+                            Box box = res.faceFeatures.get(i).box;
+                            p.setColor(Color.RED);
+                            android.graphics.Rect bbox = new android.graphics.Rect(box.left(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+                                    box.top(),//* bmp.getHeight() / resizedBitmap.getHeight(),
+                                    box.right(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+                                     box.bottom()//* bmp.getHeight() / resizedBitmap.getHeight()
+                            );
+
+                            c.drawRect(bbox, p);
+                            c.drawText(face.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
+                            Log.i(TAG, face.toString());
+                        }
+                    }
 
                     if(getActivity()!=null)
                         getActivity().runOnUiThread(() -> {
