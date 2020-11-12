@@ -180,7 +180,7 @@ public class VisualPreferences extends Fragment implements OnChartValueSelectedL
     }
 
     public void updateChart(){
-        if(mainActivity!=null) {
+        if(mainActivity!=null && !getClusterId2points().isEmpty()) {
             List<Map<String,Map<String, Set<String>>>> categoriesHistograms=getCategoriesHistograms();
             Map<Integer, List<FeaturesPoint>> clusterId2points =  getClusterId2points();
 

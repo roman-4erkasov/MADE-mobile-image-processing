@@ -161,7 +161,7 @@ public class MainActivity extends FragmentActivity {
             }
         }
 
-        DBSCANClusterer<FeaturesPoint> clusterer = new DBSCANClusterer(0.1, 2);
+        DBSCANClusterer<FeaturesPoint> clusterer = new DBSCANClusterer(0.75, 1);
         List<Cluster<FeaturesPoint>> clusters = clusterer.cluster(face_points);
         for(int i = 0; i < clusters.size(); ++i)
         {

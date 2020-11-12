@@ -72,44 +72,89 @@ public class HighLevelVisualPreferences extends VisualPreferences{
             String category=formatter.getFormattedValue(entry.getX(), null);
             //Toast.makeText(getActivity(), category + " stack=" + highlight.getStackIndex(), Toast.LENGTH_SHORT).show();
             int pos=-1;
-            for(int i=0;i<categoryList.length;++i) {
-                if (categoryList[i] == category) {
-                    pos = i;
-                    break;
-                }
-            }
+            pos = Integer.parseInt(category);
+//            for(int i=0;i<categoryList.length;++i) {
+//                if (categoryList[i] == category) {
+//                    pos = i;
+//                    break;
+//                }
+//            }
             if(mainActivity==null || pos==-1)
                 return;
+
+
+
             FragmentManager fm = getFragmentManager();
-            VisualPreferences preferencesFragment = new VisualPreferences();
-            Bundle prefArgs = new Bundle();
-//            if(pos<clut.length)
-//                prefArgs.putInt("color", clut[pos]);
-            prefArgs.putInt("position", pos);
-            prefArgs.putString("title", categoryList[pos]);
-            preferencesFragment.setArguments(prefArgs);
-            FragmentTransaction fragmentTransaction = fm.beginTransaction();
-            fragmentTransaction.replace(R.id.fragment_switch, preferencesFragment);
-            fragmentTransaction.addToBackStack(null);
-            fragmentTransaction.commit();
+            Map<Integer, List<FeaturesPoint>> clusterId2points = getClusterId2points();
+            List<FeaturesPoint> points=null;
+            if(pos<clusterId2points.size()){
+                points = clusterId2points.get(pos);
+
+//                Map<String,Map<String,Set<String>>> cat_files=categoriesHistograms.get(categoryPosition);
+//                if(cat_files.containsKey(category)){
+//                    fileLists=cat_files.get(category);
+//                }
+            }
+            if(points!=null && !points.isEmpty()) {
+                Photos photosFragment = new Photos();
+                Bundle args = new Bundle();
+                String title="cluster_" + category;
+                List<String> fileList = new ArrayList<>();
+                String[] titles={title};
+                for(FeaturesPoint point: points){
+                    fileList.add(point.results.filename);
+                }
+
+                args.putStringArrayList(title, new ArrayList<String>(fileList));
+                args.putStringArray("photosTaken", titles);
+                photosFragment.setArguments(args);
+                FragmentTransaction fragmentTransaction = fm.beginTransaction();
+                fragmentTransaction.replace(R.id.fragment_switch, photosFragment);
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
+            }
+
+
+
+
+////            FragmentManager fm = getFragmentManager();
+//            VisualPreferences preferencesFragment = new VisualPreferences();
+//            Bundle prefArgs = new Bundle();
+////            if(pos<clut.length)
+////                prefArgs.putInt("color", clut[pos]);
+//            prefArgs.putInt("position", pos);
+//            prefArgs.putString("title", categoryList[pos]);
+//            preferencesFragment.setArguments(prefArgs);
+//            FragmentTransaction fragmentTransaction = fm.beginTransaction();
+//            fragmentTransaction.replace(R.id.fragment_switch, preferencesFragment);
+//            fragmentTransaction.addToBackStack(null);
+//            fragmentTransaction.commit();
         }
     }
 
     @Override
     public void updateChart(){
-        if(mainActivity!=null) {
+        if(mainActivity!=null && !getClusterId2points().isEmpty()) {
             List<Map<String, Map<String, Set<String>>>> categoriesHistograms = getCategoriesHistograms();
             Map<Integer, List<FeaturesPoint>> clusterId2points =  getClusterId2points();
 
             //infoText.setText("");
             Map<String, Integer> histo = new HashMap<>();
-            for (int i = 0; i < categoriesHistograms.size(); ++i) {
-                int count = 0;
-                for(Map<String, Set<String>> id2Files: categoriesHistograms.get(i).values())
-                    count += getFilesCount(id2Files);
+//            for (int i = 0; i < categoriesHistograms.size(); ++i) {
+//                int count = 0;
+//                for(Map<String, Set<String>> id2Files: categoriesHistograms.get(i).values())
+//                    count += getFilesCount(id2Files);
+//
+//                if (count > 0) {
+//                    histo.put(categoryList[i], count);
+//                }
+//            }
 
+
+            for (int i = 0; i < clusterId2points.size(); ++i) {
+                int count = clusterId2points.get(i).size();
                 if (count > 0) {
-                    histo.put(categoryList[i], count);
+                    histo.put(String.valueOf(i), count);
                 }
             }
 
@@ -150,7 +195,8 @@ public class HighLevelVisualPreferences extends VisualPreferences{
             barDataSet.setColor(color);
 
             BarData data = new BarData(barDataSet);
-            data.setBarWidth(0.7f*xLabel.size()/categoryList.length);
+            data.setBarWidth(0.7f*xLabel.size()/clusterId2points.size());
+//            data.setBarWidth(0.7f*xLabel.size()/categoryList.length);
             data.setValueFormatter(new IValueFormatter(){
 
                 @Override
