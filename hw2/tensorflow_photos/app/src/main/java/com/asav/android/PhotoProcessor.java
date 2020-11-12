@@ -51,7 +51,7 @@ public class PhotoProcessor {
     private AgeGenderEthnicityTfLiteClassifier facialAttributeClassifier;
 
     private ConcurrentHashMap<String, SceneData> scenes = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, FaceData> faces = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, List<FaceFeatures>> faces = new ConcurrentHashMap<>();
     private static final String IMAGE_SCENES_FILENAME = "image_scenes";
     private static final String IMAGE_FACES_FILENAME = "image_faces";
 
@@ -241,6 +241,26 @@ public class PhotoProcessor {
         return Bitmap.createBitmap(bmp, x, y, w, h);
     }
 
+    private synchronized List<FaceFeatures> getFacesFeatures(Bitmap bmp){
+        long startTime = SystemClock.uptimeMillis();
+        Vector<Box> bboxes = mtcnnFaceDetector.detectFaces(bmp, minFaceSize);//(int)(bmp.getWidth()*MIN_FACE_SIZE));
+        Log.i(TAG, "Timecost to run mtcnn: " + Long.toString(SystemClock.uptimeMillis() - startTime));
+
+        List<FaceFeatures> facesInfo=new ArrayList<>();
+        for (Box box : bboxes) {
+            android.graphics.Rect bbox = new android.graphics.Rect(bmp.getWidth()*box.left() / bmp.getWidth(),
+                    bmp.getHeight()* box.top() / bmp.getHeight(),
+                    bmp.getWidth()* box.right() / bmp.getWidth(),
+                    bmp.getHeight() * box.bottom() / bmp.getHeight()
+            );
+            Bitmap faceBitmap = Bitmap.createBitmap(bmp, bbox.left, bbox.top, bbox.width(), bbox.height());
+            Bitmap resultBitmap = Bitmap.createScaledBitmap(faceBitmap, facialAttributeClassifier.getImageSizeX(), facialAttributeClassifier.getImageSizeY(), false);
+            FaceData res=(FaceData)facialAttributeClassifier.classifyFrame(resultBitmap);
+            facesInfo.add(new FaceFeatures(res,box));
+        }
+        return facesInfo;
+    }
+
     public ImageAnalysisResults getImageAnalysisResults(String filename, Bitmap bmp, StringBuilder text,boolean needScene)
     {
         String key = getKey(filename);
@@ -258,23 +278,22 @@ public class PhotoProcessor {
             scene=scenes.get(key);
         }
 
-        FaceData face=null;
+        List<FaceFeatures> faceFeatures=null;
         if (!faces.containsKey(key)) {
             if(needScene) {
                 if (bmp == null)
                     bmp = loadBitmap(filename);
 
-
-                face = classifyFaces(bmp, text);
-                save(context, IMAGE_FACES_FILENAME, faces, key, face);
+                faceFeatures = getFacesFeatures(bmp);
+                save(context, IMAGE_FACES_FILENAME, faces, key, faceFeatures);
             }
         }
         else
-            face=faces.get(key);
+            faceFeatures=faces.get(key);
 
         EXIFData exifData=getEXIFData(filename);
 //        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene,exifData);
-        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene, face ,exifData);
+        ImageAnalysisResults res = new ImageAnalysisResults(filename, scene, faceFeatures ,exifData);
         return res;
     }
 
