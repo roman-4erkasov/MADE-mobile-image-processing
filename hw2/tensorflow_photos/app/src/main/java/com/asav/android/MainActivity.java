@@ -60,7 +60,7 @@ public class MainActivity extends FragmentActivity {
     private String[] categoryList;
 
     private List<Map<String,Map<String, Set<String>>>> categoriesHistograms=new ArrayList<>();
-    private Map<Integer, List<FeaturesPoint>> clusterId2point = new HashMap();
+    private Map<Integer, List<FeaturesPoint>> clusterId2points = new HashMap();
 //    private List<Map<String, Map<String, Set<String>>>> eventTimePeriod2Files=new ArrayList<>();
 
     @Override
@@ -124,8 +124,8 @@ public class MainActivity extends FragmentActivity {
 //        else
 //            return eventTimePeriod2Files;
     }
-    public synchronized Map<Integer, List<FeaturesPoint>> getClusterId2point(){
-        return clusterId2point;
+    public synchronized Map<Integer, List<FeaturesPoint>> getClusterId2points(){
+        return clusterId2points;
     }
 
     private void processAllPhotos(){
@@ -161,12 +161,12 @@ public class MainActivity extends FragmentActivity {
             }
         }
 
-        DBSCANClusterer<FeaturesPoint> clusterer = new DBSCANClusterer(1, 2);
+        DBSCANClusterer<FeaturesPoint> clusterer = new DBSCANClusterer(0.1, 2);
         List<Cluster<FeaturesPoint>> clusters = clusterer.cluster(face_points);
         for(int i = 0; i < clusters.size(); ++i)
         {
             List<FeaturesPoint> cluster_points = clusters.get(i).getPoints();
-            clusterId2point.put(i, cluster_points);
+            clusterId2points.put(i, cluster_points);
         }
 
         runOnUiThread(new Runnable() {

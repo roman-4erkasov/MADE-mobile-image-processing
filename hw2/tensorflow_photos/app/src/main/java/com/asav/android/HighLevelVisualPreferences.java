@@ -42,7 +42,7 @@ public class HighLevelVisualPreferences extends VisualPreferences{
     /** Tag for the {@link Log}. */
     private static final String TAG = "HLVisualPreferences";
 
-    private int[] clut;
+//    private int[] clut;
     protected String[] categoryList;
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -53,13 +53,13 @@ public class HighLevelVisualPreferences extends VisualPreferences{
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         categoryList = getResources().getStringArray(R.array.category_list);
 
-        clut=new int[categoryList.length-1];
-        float[] hsv={0,1,1};
-        for(int i=0;i<categoryList.length-1;++i){
-            hsv[0]=360.0f* i / (categoryList.length-1);
-            clut[i]=Color.HSVToColor(hsv);
+//        clut=new int[categoryList.length-1];
+//        float[] hsv={0,1,1};
+//        for(int i=0;i<categoryList.length-1;++i){
+//            hsv[0]=360.0f* i / (categoryList.length-1);
+//            clut[i]=Color.HSVToColor(hsv);
             //Log.i(TAG,"Init color:"+clut[i]+" from hue "+hsv[0]);
-        }
+//        }
 
         super.onViewCreated(view,savedInstanceState);
     }
@@ -83,8 +83,8 @@ public class HighLevelVisualPreferences extends VisualPreferences{
             FragmentManager fm = getFragmentManager();
             VisualPreferences preferencesFragment = new VisualPreferences();
             Bundle prefArgs = new Bundle();
-            if(pos<clut.length)
-                prefArgs.putInt("color", clut[pos]);
+//            if(pos<clut.length)
+//                prefArgs.putInt("color", clut[pos]);
             prefArgs.putInt("position", pos);
             prefArgs.putString("title", categoryList[pos]);
             preferencesFragment.setArguments(prefArgs);
@@ -99,6 +99,8 @@ public class HighLevelVisualPreferences extends VisualPreferences{
     public void updateChart(){
         if(mainActivity!=null) {
             List<Map<String, Map<String, Set<String>>>> categoriesHistograms = getCategoriesHistograms();
+            Map<Integer, List<FeaturesPoint>> clusterId2points =  getClusterId2points();
+
             //infoText.setText("");
             Map<String, Integer> histo = new HashMap<>();
             for (int i = 0; i < categoriesHistograms.size(); ++i) {

@@ -118,6 +118,9 @@ public class VisualPreferences extends Fragment implements OnChartValueSelectedL
         int pos=viewOptionsSpinner.getSelectedItemPosition();
         return mainActivity.getCategoriesHistograms(pos!=1);
     }
+    protected Map<Integer, List<FeaturesPoint>> getClusterId2points(){
+        return mainActivity.getClusterId2points();
+    }
 
     @Override
     public void onValueSelected(Entry entry, Highlight highlight) {
@@ -131,8 +134,18 @@ public class VisualPreferences extends Fragment implements OnChartValueSelectedL
             FragmentManager fm = getFragmentManager();
 
             List<Map<String,Map<String,Set<String>>>> categoriesHistograms=getCategoriesHistograms();
+            Map<Integer, List<FeaturesPoint>> clusterId2points =  getClusterId2points();
+
             Map<String,Set<String>> fileLists=null;
-            if(categoryPosition<categoriesHistograms.size()){
+//            if(categoryPosition<categoriesHistograms.size()){
+//                Map<String,Map<String,Set<String>>> cat_files=categoriesHistograms.get(categoryPosition);
+//                if(cat_files.containsKey(category)){
+//                    fileLists=cat_files.get(category);
+//                }
+//            }
+            if(categoryPosition<clusterId2points.size()){
+                List<FeaturesPoint> points = clusterId2points.get(categoryPosition);
+
                 Map<String,Map<String,Set<String>>> cat_files=categoriesHistograms.get(categoryPosition);
                 if(cat_files.containsKey(category)){
                     fileLists=cat_files.get(category);
@@ -169,6 +182,8 @@ public class VisualPreferences extends Fragment implements OnChartValueSelectedL
     public void updateChart(){
         if(mainActivity!=null) {
             List<Map<String,Map<String, Set<String>>>> categoriesHistograms=getCategoriesHistograms();
+            Map<Integer, List<FeaturesPoint>> clusterId2points =  getClusterId2points();
+
             Map<String,Map<String,Set<String>>> histo=null;
             if (categoryPosition<categoriesHistograms.size()) {
                 histo=categoriesHistograms.get(categoryPosition);
