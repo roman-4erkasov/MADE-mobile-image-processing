@@ -7,11 +7,13 @@ import org.apache.commons.math3.ml.clustering.Clusterable;
 public class FeaturesPoint implements Clusterable {
     public ImageAnalysisResults results;
     public float[] features;
+    public FaceFeatures face;
 
-    public FeaturesPoint(ImageAnalysisResults r, float[] f)
+    public FeaturesPoint(ImageAnalysisResults r, float[] ft, FaceFeatures fc)
     {
         results = r;
-        features = f;
+        features = ft;
+        face = fc;
     }
 
     public double[] getPoint()

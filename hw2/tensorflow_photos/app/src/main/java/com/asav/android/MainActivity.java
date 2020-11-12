@@ -141,7 +141,7 @@ public class MainActivity extends FragmentActivity {
                     long startTime = SystemClock.uptimeMillis();
                     ImageAnalysisResults res = photoProcessor.getImageAnalysisResults(filename);
                     for (FaceFeatures face: res.faceFeatures){
-                        face_points.add(new FeaturesPoint(res, face.faceData.features));
+                        face_points.add(new FeaturesPoint(res, face.faceData.features, face));
                     }
 
                     long endTime = SystemClock.uptimeMillis();

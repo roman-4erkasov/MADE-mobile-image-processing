@@ -100,12 +100,15 @@ public class HighLevelVisualPreferences extends VisualPreferences{
                 Bundle args = new Bundle();
                 String title="cluster_" + category;
                 List<String> fileList = new ArrayList<>();
+                List<FaceFeatures> cur_faces = new ArrayList<>();
                 String[] titles={title};
                 for(FeaturesPoint point: points){
                     fileList.add(point.results.filename);
+                    cur_faces.add(point.face);
                 }
 
-                args.putStringArrayList(title, new ArrayList<String>(fileList));
+                args.putStringArrayList("files_" + title, new ArrayList<String>(fileList));
+                args.putSerializable("faces_" + title, new ArrayList<FaceFeatures>(cur_faces));
                 args.putStringArray("photosTaken", titles);
                 photosFragment.setArguments(args);
                 FragmentTransaction fragmentTransaction = fm.beginTransaction();

@@ -45,6 +45,7 @@ public class Photos extends Fragment {
     private static final String TAG = "PhotosFragment";
 
     private List<List<String>> photos;
+    private List<List<FaceFeatures>> faces;
     private int[] currentPhotoIndexes=null;
     private PhotoProcessor photoProcessor=null;
     private ImageView photoView;
@@ -73,15 +74,18 @@ public class Photos extends Fragment {
 
         String[] arraySpinner=getArguments().getStringArray("photosTaken");
         photos=new ArrayList<>();
+        faces=new ArrayList<>();
         for(int i=0;i<arraySpinner.length;++i) {
-            ArrayList<String> filenames=getArguments().getStringArrayList(arraySpinner[i]);
-            filenames.sort(new Comparator<String>() {
-                @Override
-                public int compare(String lhs, String rhs) {
-                    return photo2date.get(rhs).compareTo(photo2date.get(lhs));
-                }
-            });
+            ArrayList<String> filenames=getArguments().getStringArrayList("files_" + arraySpinner[i]);
+            ArrayList<FaceFeatures> cur_faces= (ArrayList<FaceFeatures>) getArguments().getSerializable("faces_" + arraySpinner[i]);
+//            filenames.sort(new Comparator<String>() {
+//                @Override
+//                public int compare(String lhs, String rhs) {
+//                    return photo2date.get(rhs).compareTo(photo2date.get(lhs));
+//                }
+//            });
             photos.add(filenames);
+            faces.add(cur_faces);
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
                 R.layout.spinner_item, arraySpinner);
@@ -219,6 +223,7 @@ public class Photos extends Fragment {
             text.append("photo ").append(currentPhotoIndex+1).append(" out of ").append(photosTaken.size()).append("\n");
             if (currentPhotoIndex<photosTaken.size()) {
                 String filename=photosTaken.get(currentPhotoIndex);
+                FaceFeatures face = faces.get(pos).get(currentPhotoIndex);
 
                 try{
                     Bitmap bmp=photoProcessor.loadBitmap(filename);
@@ -264,22 +269,35 @@ public class Photos extends Fragment {
                         text.append("Faces:\n");
                         for (int i = 0; i < res.faceFeatures.size(); ++i)
                         {
-                            FaceData face = res.faceFeatures.get(i).faceData;
-                            text.append(face).append("\n");
+//                            FaceData face = res.faceFeatures.get(i).faceData;
+                            text.append(res.faceFeatures.get(i).faceData).append("\n");
 
                             // bbox
-                            Box box = res.faceFeatures.get(i).box;
-                            p.setColor(Color.RED);
-                            android.graphics.Rect bbox = new android.graphics.Rect(box.left(),//* bmp.getWidth() / resizedBitmap.getWidth(),
-                                    box.top(),//* bmp.getHeight() / resizedBitmap.getHeight(),
-                                    box.right(),//* bmp.getWidth() / resizedBitmap.getWidth(),
-                                     box.bottom()//* bmp.getHeight() / resizedBitmap.getHeight()
-                            );
+//                            Box box = res.faceFeatures.get(i).box;
+//                            p.setColor(Color.RED);
+//                            android.graphics.Rect bbox = new android.graphics.Rect(box.left(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+//                                    box.top(),//* bmp.getHeight() / resizedBitmap.getHeight(),
+//                                    box.right(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+//                                     box.bottom()//* bmp.getHeight() / resizedBitmap.getHeight()
+//                            );
 
-                            c.drawRect(bbox, p);
-                            c.drawText(face.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
-                            Log.i(TAG, face.toString());
+//                            c.drawRect(bbox, p);
+//                            c.drawText(face.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
+//                            Log.i(TAG, face.toString());
                         }
+                        // bbox
+                        Box box = face.box;
+                        p.setColor(Color.RED);
+                        android.graphics.Rect bbox = new android.graphics.Rect(box.left(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+                                box.top(),//* bmp.getHeight() / resizedBitmap.getHeight(),
+                                box.right(),//* bmp.getWidth() / resizedBitmap.getWidth(),
+                                box.bottom()//* bmp.getHeight() / resizedBitmap.getHeight()
+                        );
+
+                        c.drawRect(bbox, p);
+                        c.drawText(face.toString(), bbox.left, Math.max(0, bbox.top - 20), p_text);
+                        Log.i(TAG, face.toString());
+
                     }
 
                     if(getActivity()!=null)
